@@ -94,4 +94,36 @@ public class User {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    public static User create(String loginId, String passwordHash, String email, String phoneNumber, String nickname, LocalDateTime emailVerifiedAt, LocalDateTime phoneVerifiedAt) {
+        User user = new User();
+
+        user.loginId = loginId;
+        user.passwordHash = passwordHash;
+        user.email = email;
+        user.phoneNumber = phoneNumber;
+        user.nickname = nickname;
+        user.emailVerifiedAt = emailVerifiedAt;
+        user.phoneVerifiedAt = phoneVerifiedAt;
+        user.passwordChangedAt = LocalDateTime.now();
+        
+        return user;
+    }
+
+    public boolean isLocked(LocalDateTime now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    public void recordLoginFailure(LocalDateTime now, int maxAttempts, int lockMinutes) {
+        loginFailCount = (loginFailCount == null ? 0 : loginFailCount) + 1;
+        if (loginFailCount >= maxAttempts) {
+            lockedUntil = now.plusMinutes(lockMinutes);
+        }
+    }
+
+    public void recordLoginSuccess(LocalDateTime now) {
+        loginFailCount = 0;
+        lockedUntil = null;
+        lastLoginAt = now;
+    }
 }
