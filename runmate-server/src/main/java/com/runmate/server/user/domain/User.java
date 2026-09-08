@@ -110,6 +110,38 @@ public class User {
         return user;
     }
 
+    public static User createSocial(
+            String phoneNumber,
+            String nickname,
+            LocalDateTime phoneVerifiedAt
+    ) {
+        User user = new User();
+        user.phoneNumber = phoneNumber;
+        user.nickname = nickname;
+        user.phoneVerifiedAt = phoneVerifiedAt;
+        return user;
+    }
+
+    public void addLocalLogin(
+            String loginId,
+            String passwordHash,
+            String email,
+            LocalDateTime emailVerifiedAt
+    ) {
+        if (this.loginId != null || this.passwordHash != null) {
+            throw new IllegalStateException("이미 일반 로그인이 등록된 회원입니다.");
+        }
+        this.loginId = loginId;
+        this.passwordHash = passwordHash;
+        this.email = email;
+        this.emailVerifiedAt = emailVerifiedAt;
+        this.passwordChangedAt = LocalDateTime.now();
+    }
+
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     public boolean isLocked(LocalDateTime now) {
         return lockedUntil != null && lockedUntil.isAfter(now);
     }

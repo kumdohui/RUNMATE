@@ -5,9 +5,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.runmate.server.auth.dto.SignupRequest;
 import com.runmate.server.auth.dto.SignupResponse;
+import com.runmate.server.auth.dto.LoginIdAvailabilityResponse;
+import com.runmate.server.auth.service.LoginIdAvailabilityService;
 import com.runmate.server.auth.service.SignupService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -19,6 +23,12 @@ import lombok.RequiredArgsConstructor;
 public class SignupController {
 
     private final SignupService signupService;
+    private final LoginIdAvailabilityService loginIdAvailabilityService;
+
+    @GetMapping("/login-id/availability")
+    public LoginIdAvailabilityResponse checkLoginId(@RequestParam String loginId) {
+        return loginIdAvailabilityService.check(loginId);
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(

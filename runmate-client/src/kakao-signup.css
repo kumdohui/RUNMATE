@@ -1,0 +1,28 @@
+.kakao-signup-page { min-height: 100vh; background: #f2f7f3; color: #17231c; }
+.kakao-signup-header { height: 76px; display: flex; align-items: center; padding: 0 max(24px, calc((100% - 1120px) / 2)); background: #fff; border-bottom: 1px solid #e4ebe6; }
+.kakao-signup-header a { color: #12633a; font-size: 22px; font-weight: 900; text-decoration: none; letter-spacing: .04em; }
+.kakao-signup-main { display: grid; place-items: center; padding: 56px 20px; }
+.kakao-signup-card { width: min(100%, 560px); padding: 42px; background: #fff; border: 1px solid #dfe9e2; border-radius: 28px; box-shadow: 0 22px 70px rgba(22, 76, 46, .1); }
+.kakao-signup-card h1 { margin: 14px 0 8px; font-size: 32px; }
+.kakao-signup-card > p { margin: 0 0 32px; color: #65736a; }
+.kakao-badge { display: inline-flex; padding: 7px 11px; border-radius: 999px; background: #fee500; color: #191919; font-size: 12px; font-weight: 900; }
+.kakao-loading { padding: 28px; text-align: center; color: #65736a; }
+.kakao-profile { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+.kakao-profile > img, .kakao-profile > span { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #dff1e5; color: #12633a; font-size: 24px; font-weight: 900; }
+.kakao-field { flex: 1; margin-bottom: 18px; }
+.kakao-field label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 800; }
+.kakao-field input { box-sizing: border-box; width: 100%; height: 50px; padding: 0 15px; border: 1px solid #ccd9d0; border-radius: 13px; font: inherit; outline: none; }
+.kakao-field input:focus { border-color: #198a50; box-shadow: 0 0 0 3px rgba(25, 138, 80, .12); }
+.kakao-input-action { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.kakao-input-action button { padding: 0 17px; border: 0; border-radius: 13px; background: #e5f3e9; color: #12633a; font-weight: 800; cursor: pointer; }
+.kakao-input-action button:disabled { opacity: .55; cursor: default; }
+.development-code { margin: 9px 0 0; padding: 10px 12px; border-radius: 10px; background: #fff8d7; color: #665500; font-size: 13px; }
+.verified-message { margin: -5px 0 22px; color: #17854d; font-weight: 800; }
+.kakao-terms { display: grid; gap: 12px; margin: 26px 0 18px; padding: 18px; border-radius: 16px; background: #f6f9f7; }
+.kakao-terms label { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+.kakao-all-term { padding-bottom: 12px; border-bottom: 1px solid #dfe7e1; font-weight: 900; }
+.kakao-message { margin: 0 0 14px !important; color: #b23a31 !important; font-size: 14px; }
+.kakao-complete { width: 100%; height: 54px; border: 0; border-radius: 15px; background: #176a3e; color: #fff; font-size: 16px; font-weight: 900; cursor: pointer; }
+.kakao-complete:disabled { opacity: .6; }
+.kakao-term-detail { margin-left: 8px; padding: 0; color: #12633a; background: none; border: 0; text-decoration: underline; text-underline-offset: 3px; font: inherit; font-weight: 800; cursor: pointer; }
+@media (max-width: 600px) { .kakao-signup-card { padding: 28px 20px; border-radius: 20px; } .kakao-signup-card h1 { font-size: 27px; } }

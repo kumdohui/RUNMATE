@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.AssertTrue;
 
 
 
@@ -48,6 +49,11 @@ public record SignupRequest(
                 @NotNull(message = "약관 번호는 필수입니다.")
                 @Positive(message = "약관 번호는 양수여야 합니다.")
                 Long
-        > termIds
+        > termIds,
+
+        @AssertTrue(message = "만 14세 이상만 가입할 수 있습니다.")
+        boolean ageConfirmed,
+
+        boolean linkExistingAccount
 ) {
 }

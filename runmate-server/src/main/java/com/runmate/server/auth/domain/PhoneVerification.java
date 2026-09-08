@@ -50,8 +50,39 @@ public class PhoneVerification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    public static PhoneVerification createForSignup(
+            String phoneNumber,
+            String codeHash,
+            LocalDateTime expiresAt
+    ) {
+        PhoneVerification verification = new PhoneVerification();
+        verification.phoneNumber = phoneNumber;
+        verification.codeHash = codeHash;
+        verification.purpose = PhoneVerificationPurpose.SIGNUP;
+        verification.expiresAt = expiresAt;
+        return verification;
+    }
+
+    public boolean canAttempt(LocalDateTime now) {
+        return consumedAt == null
+                && verifiedAt == null
+                && expiresAt.isAfter(now)
+                && attemptCount < 5;
+    }
+
+    public void recordFailedAttempt() {
+        attemptCount++;
+    }
+
+    public void verify(LocalDateTime now) {
+        verifiedAt = now;
+    }
+
     public boolean isUsableForSignup(LocalDateTime now) {
-        return purpose == PhoneVerificationPurpose.SIGNUP&& verifiedAt != null&& consumedAt == null&& expiresAt.isAfter(now);
+        return purpose == PhoneVerificationPurpose.SIGNUP
+                && verifiedAt != null
+                && consumedAt == null
+                && verifiedAt.plusMinutes(30).isAfter(now);
     }
 
     public void consume(LocalDateTime now) {

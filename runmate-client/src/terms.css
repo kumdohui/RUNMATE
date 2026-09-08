@@ -1,0 +1,16 @@
+.terms-page { min-height: 100vh; background: #f4f7f5; color: #17231c; }
+.terms-header { height: 76px; display: flex; align-items: center; padding: 0 max(24px, calc((100% - 920px) / 2)); background: #fff; border-bottom: 1px solid #e0e8e2; }
+.terms-header a { color: #14653c; font-size: 22px; font-weight: 900; text-decoration: none; }
+.terms-document { box-sizing: border-box; width: min(calc(100% - 32px), 920px); margin: 42px auto; padding: 52px 64px; background: #fff; border: 1px solid #e0e8e2; border-radius: 24px; box-shadow: 0 18px 55px rgba(20, 80, 47, .07); }
+.terms-title { padding-bottom: 28px; border-bottom: 2px solid #173f29; }
+.terms-title span { color: #198a50; font-size: 12px; font-weight: 900; letter-spacing: .12em; }
+.terms-title h1 { margin: 10px 0; font-size: 34px; }
+.terms-title p { margin: 0; color: #718077; }
+.terms-age-notice { margin: 28px 0 8px; padding: 18px 20px; border: 1px solid #cfe2d5; border-radius: 14px; background: #eff8f2; }
+.terms-age-notice strong { display: block; margin-bottom: 7px; color: #14653c; font-size: 15px; }
+.terms-age-notice p { margin: 0; color: #405248; line-height: 1.7; }
+.terms-document section { padding: 20px 0; border-bottom: 1px solid #edf1ee; }
+.terms-document section h2 { margin: 0 0 10px; font-size: 18px; }
+.terms-document section p { margin: 0; color: #536159; line-height: 1.8; }
+.terms-back { margin-top: 32px; padding: 14px 20px; border: 0; border-radius: 12px; background: #176a3e; color: #fff; font-weight: 800; cursor: pointer; }
+@media (max-width: 640px) { .terms-document { padding: 32px 22px; margin: 20px auto; border-radius: 18px; } .terms-title h1 { font-size: 27px; } }

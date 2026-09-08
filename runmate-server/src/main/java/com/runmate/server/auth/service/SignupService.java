@@ -3,6 +3,7 @@ package com.runmate.server.auth.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,12 +24,10 @@ import com.runmate.server.terms.domain.UserTermAgreement;
 import com.runmate.server.terms.repository.TermRepository;
 import com.runmate.server.terms.repository.UserTermAgreementRepository;
 import com.runmate.server.user.domain.User;
+import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class SignupService {
 
     private final UserRepository userRepository;
@@ -37,6 +36,22 @@ public class SignupService {
     private final TermRepository termRepository;
     private final UserTermAgreementRepository userTermAgreementRepository;
     private final PasswordEncoder passwordEncoder;
+
+    public SignupService(
+            UserRepository userRepository,
+            EmailVerificationRepository emailVerificationRepository,
+            PhoneVerificationRepository phoneVerificationRepository,
+            TermRepository termRepository,
+            UserTermAgreementRepository userTermAgreementRepository,
+            PasswordEncoder passwordEncoder
+    ) {
+        this.userRepository = userRepository;
+        this.emailVerificationRepository = emailVerificationRepository;
+        this.phoneVerificationRepository = phoneVerificationRepository;
+        this.termRepository = termRepository;
+        this.userTermAgreementRepository = userTermAgreementRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Transactional
     public SignupResponse signup(
@@ -62,11 +77,7 @@ public class SignupService {
 
         validatePhoneVerification(phoneVerification, now);
 
-        validateDuplicateUser(
-                request,
-                emailVerification.getEmail(),
-                phoneVerification.getPhoneNumber()
-        );
+        validateUniqueLocalCredentials(request.loginId(), emailVerification.getEmail());
 
         List<Term> agreedTerms = validateTerms(
                 request.termIds(),
@@ -77,17 +88,21 @@ public class SignupService {
                 request.password()
         );
 
-        User user = User.create(
-                request.loginId(),
-                passwordHash,
-                emailVerification.getEmail(),
-                phoneVerification.getPhoneNumber(),
-                request.nickname(),
-                emailVerification.getVerifiedAt(),
-                phoneVerification.getVerifiedAt()
-        );
-
-        User savedUser = userRepository.save(user);
+        Optional<User> existingUser = userRepository
+                .findByPhoneNumber(phoneVerification.getPhoneNumber());
+        User savedUser = existingUser
+                .map(user -> addLocalLogin(
+                        user,
+                        request,
+                        passwordHash,
+                        emailVerification
+                ))
+                .orElseGet(() -> createNewUser(
+                        request,
+                        passwordHash,
+                        emailVerification,
+                        phoneVerification
+                ));
 
         List<UserTermAgreement> agreements = agreedTerms.stream()
                 .map(term -> UserTermAgreement.createAgreement(
@@ -103,7 +118,7 @@ public class SignupService {
         emailVerification.consume(now);
         phoneVerification.consume(now);
 
-        return new SignupResponse(savedUser.getUserId());
+        return new SignupResponse(savedUser.getUserId(), existingUser.isPresent());
     }
 
     private void validateEmailVerification(
@@ -128,9 +143,9 @@ public class SignupService {
             );
         }
 
-        if (!verification.getExpiresAt().isAfter(now)) {
+        if (!verification.getVerifiedAt().plusMinutes(30).isAfter(now)) {
             throw new SignupException(
-                    "이메일 인증 시간이 만료되었습니다. 다시 인증해 주세요."
+                    "이메일 인증 완료 후 30분이 지났습니다. 다시 인증해 주세요."
             );
         }
     }
@@ -157,41 +172,81 @@ public class SignupService {
             );
         }
 
-        if (!verification.getExpiresAt().isAfter(now)) {
+        if (!verification.getVerifiedAt().plusMinutes(30).isAfter(now)) {
             throw new SignupException(
-                    "휴대전화 인증 시간이 만료되었습니다 . 다시 인증해 주세요."
+                    "휴대전화 인증 완료 후 30분이 지났습니다. 다시 인증해 주세요."
             );
         }
     }
 
-    private void validateDuplicateUser(
-            SignupRequest request,
-            String email,
-            String phoneNumber
-    ) {
-        if (userRepository.existsByLoginId(request.loginId())) {
+    private void validateUniqueLocalCredentials(String loginId, String email) {
+        if (userRepository.existsByLoginId(loginId)) {
             throw new SignupException(
                     "이미 사용 중인 아이디입니다."
             );
         }
-
-        if (userRepository.existsByNickname(request.nickname())) {
-            throw new SignupException(
-                    "이미 사용 중인 닉네임입니다."
-            );
-        }
-
         if (userRepository.existsByEmail(email)) {
             throw new SignupException(
                     "이미 가입된 이메일입니다."
             );
         }
+    }
 
-        if (userRepository.existsByPhoneNumber(phoneNumber)) {
+    private User addLocalLogin(
+            User user,
+            SignupRequest request,
+            String passwordHash,
+            EmailVerification emailVerification
+    ) {
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new SignupException("현재 일반 로그인을 추가할 수 없는 계정입니다.");
+        }
+        if (user.getLoginId() != null || user.getPasswordHash() != null) {
             throw new SignupException(
-                    "이미 가입된 휴대전화 번호입니다."
+                    "이미 일반 로그인이 등록된 계정입니다. 로그인 또는 계정 찾기를 이용해 주세요."
             );
         }
+        if (!request.linkExistingAccount()) {
+            throw new SignupException(
+                    "기존 계정에 일반 로그인을 추가하려면 계정 연결에 동의해 주세요."
+            );
+        }
+
+        String requestedNickname = request.nickname().trim();
+        if (!requestedNickname.equals(user.getNickname())
+                && userRepository.existsByNickname(requestedNickname)) {
+            throw new SignupException("이미 사용 중인 닉네임입니다.");
+        }
+
+        user.addLocalLogin(
+                request.loginId(),
+                passwordHash,
+                emailVerification.getEmail(),
+                emailVerification.getVerifiedAt()
+        );
+        user.changeNickname(requestedNickname);
+        return user;
+    }
+
+    private User createNewUser(
+            SignupRequest request,
+            String passwordHash,
+            EmailVerification emailVerification,
+            PhoneVerification phoneVerification
+    ) {
+        if (userRepository.existsByNickname(request.nickname())) {
+            throw new SignupException("이미 사용 중인 닉네임입니다.");
+        }
+        User user = User.create(
+                request.loginId(),
+                passwordHash,
+                emailVerification.getEmail(),
+                phoneVerification.getPhoneNumber(),
+                request.nickname(),
+                emailVerification.getVerifiedAt(),
+                phoneVerification.getVerifiedAt()
+        );
+        return userRepository.save(user);
     }
 
     private List<Term> validateTerms(

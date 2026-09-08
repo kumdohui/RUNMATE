@@ -18,10 +18,27 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/auth/signup", "/api/auth/login")
+                        .ignoringRequestMatchers(
+                                "/api/auth/signup",
+                                "/api/auth/login",
+                                "/api/auth/phone-verifications/**",
+                                "/api/auth/email-verifications/**",
+                                "/api/auth/kakao/signup"
+                        )
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/csrf").permitAll()
+                        .requestMatchers(
+                                "/api/auth/signup",
+                                "/api/auth/login",
+                                "/api/auth/csrf",
+                                "/api/auth/login-id/availability",
+                                "/api/auth/phone-verifications/**",
+                                "/api/auth/email-verifications/**",
+                                "/api/auth/kakao",
+                                "/api/auth/kakao/callback",
+                                "/api/auth/kakao/pending",
+                                "/api/auth/kakao/signup"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
