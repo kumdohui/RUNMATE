@@ -59,7 +59,7 @@ async function issueCode() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber }),
+      body: JSON.stringify({ phoneNumber, accountLinkingAllowed: true }),
     })
     const data = await readJson(response)
     verificationId.value = data.verificationId

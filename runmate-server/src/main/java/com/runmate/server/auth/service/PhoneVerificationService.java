@@ -41,12 +41,16 @@ public class PhoneVerificationService {
     private boolean developmentMode;
 
     @Transactional
-    public PhoneVerificationIssueResponse issue(String rawPhoneNumber) {
+    public PhoneVerificationIssueResponse issue(
+            String rawPhoneNumber,
+            boolean accountLinkingAllowed
+    ) {
         if (!developmentMode) {
             throw new SignupException("문자 발송 서비스가 설정되지 않았습니다.");
         }
 
         String phoneNumber = rawPhoneNumber.replace("-", "");
+        validateExistingAccount(phoneNumber, accountLinkingAllowed);
         LocalDateTime now = LocalDateTime.now();
         validateIssueRateLimit(phoneNumber, now);
 
@@ -63,6 +67,24 @@ public class PhoneVerificationService {
                 code,
                 EXPIRES_IN_SECONDS
         );
+    }
+
+    private void validateExistingAccount(
+            String phoneNumber,
+            boolean accountLinkingAllowed
+    ) {
+        if (accountLinkingAllowed) {
+            return;
+        }
+
+        userRepository.findByPhoneNumber(phoneNumber)
+                .filter(user -> user.getLoginId() != null
+                        && user.getPasswordHash() != null)
+                .ifPresent(user -> {
+                    throw new SignupException(
+                            "이미 가입된 휴대전화 번호입니다. 기존 아이디로 로그인해 주세요."
+                    );
+                });
     }
 
     private void validateIssueRateLimit(String phoneNumber, LocalDateTime now) {

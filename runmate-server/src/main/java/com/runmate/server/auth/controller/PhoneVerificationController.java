@@ -26,7 +26,10 @@ public class PhoneVerificationController {
     public PhoneVerificationIssueResponse issue(
             @Valid @RequestBody PhoneVerificationRequest request
     ) {
-        return phoneVerificationService.issue(request.phoneNumber());
+        return phoneVerificationService.issue(
+                request.phoneNumber(),
+                Boolean.TRUE.equals(request.accountLinkingAllowed())
+        );
     }
 
     @PostMapping("/{verificationId}/confirm")

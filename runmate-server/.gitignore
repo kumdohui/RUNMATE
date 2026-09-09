@@ -33,3 +33,8 @@ build/
 .vscode/
 
 .env
+.env.*
+!.env.example
+runmate-server/target/
+runmate-client/node_modules/
+runmate-client/dist/
