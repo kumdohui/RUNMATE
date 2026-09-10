@@ -5,7 +5,9 @@ export const authState = reactive({ user: null, checked: false })
 export async function loadSession() {
   try {
     const response = await fetch('/api/auth/session', { credentials: 'include' })
-    authState.user = response.ok ? await response.json() : null
+    authState.user = response.ok && response.status !== 204
+      ? await response.json()
+      : null
   } catch {
     authState.user = null
   } finally {

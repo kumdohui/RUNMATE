@@ -19,6 +19,12 @@ const allTermsAgreed = computed({
   set: (value) => { form.serviceTerm = value; form.privacyTerm = value; form.ageConfirmed = value },
 })
 
+function normalizePhoneNumber(value) {
+  const phoneNumber = value.trim()
+  if (!/^01[016789](?:\d{7,8}|-\d{3,4}-\d{4})$/.test(phoneNumber)) return null
+  return phoneNumber.replaceAll('-', '')
+}
+
 function openTerms(type) {
   const url = router.resolve(`/terms/${type}/1.0`).href
   window.open(url, '_blank')
@@ -48,8 +54,8 @@ async function issueCode() {
   phoneVerified.value = false
   verificationId.value = null
   developmentCode.value = ''
-  const phoneNumber = form.phoneNumber.replaceAll('-', '')
-  if (!/^01[016789]\d{7,8}$/.test(phoneNumber)) {
+  const phoneNumber = normalizePhoneNumber(form.phoneNumber)
+  if (!phoneNumber) {
     message.value = '휴대전화 번호를 확인해 주세요.'
     return
   }

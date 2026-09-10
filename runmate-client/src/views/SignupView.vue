@@ -28,6 +28,9 @@ const linkExistingAccount = ref(false)
 const loginIdChecking = ref(false)
 const loginIdAvailable = ref(null)
 const checkedLoginId = ref('')
+const nicknameChecking = ref(false)
+const nicknameAvailable = ref(null)
+const checkedNickname = ref('')
 const errors = reactive({})
 const form = reactive({ loginId: '', nickname: '', password: '', passwordConfirm: '', phoneNumber: '', email: '', phoneVerificationId: '', emailVerificationId: '', serviceTerm: false, privacyTerm: false, ageConfirmed: false })
 const passwordsMatch = computed(() => form.passwordConfirm && form.password === form.passwordConfirm)
@@ -37,6 +40,11 @@ const allTermsAgreed = computed({ get: () => form.serviceTerm && form.privacyTer
 watch(() => form.loginId, () => {
   loginIdAvailable.value = null
   checkedLoginId.value = ''
+})
+
+watch(() => form.nickname, () => {
+  nicknameAvailable.value = null
+  checkedNickname.value = ''
 })
 
 watch(() => form.phoneNumber, () => {
@@ -59,6 +67,12 @@ watch(() => form.email, () => {
 })
 
 function clearErrors() { Object.keys(errors).forEach((key) => delete errors[key]); serverMessage.value = '' }
+
+function normalizePhoneNumber(value) {
+  const phoneNumber = value.trim()
+  if (!/^01[016789](?:\d{7,8}|-\d{3,4}-\d{4})$/.test(phoneNumber)) return null
+  return phoneNumber.replaceAll('-', '')
+}
 
 async function issueEmailCode() {
   clearErrors()
@@ -115,8 +129,8 @@ async function confirmEmailCode() {
 
 async function issuePhoneCode() {
   clearErrors()
-  const phoneNumber = form.phoneNumber.replaceAll('-', '')
-  if (!/^01[016789]\d{7,8}$/.test(phoneNumber)) {
+  const phoneNumber = normalizePhoneNumber(form.phoneNumber)
+  if (!phoneNumber) {
     errors.phoneNumber = '휴대전화 번호를 확인해 주세요.'
     return
   }
@@ -198,15 +212,43 @@ async function checkLoginIdAvailability() {
     loginIdChecking.value = false
   }
 }
+async function checkNicknameAvailability() {
+  delete errors.nickname
+  nicknameAvailable.value = null
+  const nickname = form.nickname.trim()
+  const nicknameLength = [...nickname].length
+  if (nicknameLength < 2 || nicknameLength > 20) {
+    errors.nickname = '닉네임은 2~20자로 입력해 주세요.'
+    return
+  }
+  nicknameChecking.value = true
+  try {
+    const params = new URLSearchParams({ nickname })
+    if (phoneVerified.value && form.phoneVerificationId) {
+      params.set('phoneVerificationId', form.phoneVerificationId)
+    }
+    const response = await fetch(`/api/auth/nickname/availability?${params}`)
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.message || '닉네임 사용 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+    checkedNickname.value = nickname
+    nicknameAvailable.value = data.available
+    if (!data.available) errors.nickname = '이미 사용 중인 닉네임입니다.'
+  } catch (error) {
+    errors.nickname = error.message || '닉네임 사용 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    nicknameChecking.value = false
+  }
+}
 function validateAccountStep() {
   clearErrors()
   if (!/^[a-z0-9]{4,20}$/.test(form.loginId)) errors.loginId = '영문 소문자와 숫자 4~20자로 입력해 주세요.'
   else if (checkedLoginId.value !== form.loginId || loginIdAvailable.value !== true) errors.loginId = '아이디 중복 확인을 해주세요.'
   const nicknameLength = [...form.nickname.trim()].length
   if (nicknameLength < 2 || nicknameLength > 20) errors.nickname = '닉네임은 2~20자로 입력해 주세요.'
+  else if (checkedNickname.value !== form.nickname.trim() || nicknameAvailable.value !== true) errors.nickname = '닉네임 중복 확인을 해주세요.'
   if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9])[!-~]{8,20}$/.test(form.password)) errors.password = '영문자, 숫자, 특수문자를 포함한 8~20자로 입력해 주세요.'
   if (form.password !== form.passwordConfirm) errors.passwordConfirm = '비밀번호가 일치하지 않습니다.'
-  if (!/^01[016789]\d{7,8}$/.test(form.phoneNumber.replaceAll('-', ''))) errors.phoneNumber = '휴대전화 번호를 확인해 주세요.'
+  if (!normalizePhoneNumber(form.phoneNumber)) errors.phoneNumber = '휴대전화 번호를 확인해 주세요.'
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = '이메일 주소를 확인해 주세요.'
   if (!phoneVerified.value || !Number.isInteger(Number(form.phoneVerificationId)) || Number(form.phoneVerificationId) <= 0) errors.phoneVerificationId = '휴대전화 인증을 완료해 주세요.'
   if (existingLocalLogin.value) errors.phoneVerificationId = '이미 일반 로그인이 등록된 계정입니다. 로그인해 주세요.'
@@ -243,7 +285,7 @@ async function submitSignup() {
         <form v-if="step === 1" class="account-form" novalidate @submit.prevent="goToTerms">
           <div class="two-columns">
             <div class="field"><label for="loginId">아이디 *</label><div class="id-check-row"><input id="loginId" v-model.trim="form.loginId" type="text" autocomplete="username" placeholder="runmate01" :aria-invalid="Boolean(errors.loginId)" /><button type="button" :disabled="loginIdChecking" @click="checkLoginIdAvailability">{{ loginIdChecking ? '확인 중' : '중복 확인' }}</button></div><p v-if="loginIdAvailable === true" class="available">✓ 사용할 수 있는 아이디입니다.</p><p v-if="errors.loginId" class="error">{{ errors.loginId }}</p></div>
-            <div class="field"><label for="nickname">닉네임 *</label><input id="nickname" v-model="form.nickname" placeholder="한강러너" :aria-invalid="Boolean(errors.nickname)" /><p v-if="existingAccount && !existingLocalLogin" class="available">계정 연결 후 카카오 로그인에도 이 닉네임이 사용됩니다.</p><p v-if="errors.nickname" class="error">{{ errors.nickname }}</p></div>
+            <div class="field"><label for="nickname">닉네임 *</label><div class="id-check-row"><input id="nickname" v-model="form.nickname" placeholder="한강러너" :aria-invalid="Boolean(errors.nickname)" /><button type="button" :disabled="nicknameChecking" @click="checkNicknameAvailability">{{ nicknameChecking ? '확인 중' : '중복 확인' }}</button></div><p v-if="nicknameAvailable === true" class="available">✓ 사용할 수 있는 닉네임입니다.</p><p v-if="existingAccount && !existingLocalLogin" class="available">계정 연결 후 카카오 로그인에도 이 닉네임이 사용됩니다.</p><p v-if="errors.nickname" class="error">{{ errors.nickname }}</p></div>
             <div class="field"><label for="password">비밀번호 *</label><div class="password-wrap"><input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" placeholder="영문자·숫자·특수문자 8~20자" :aria-invalid="Boolean(errors.password)" /><button type="button" class="eye-button" @click="showPassword = !showPassword">{{ showPassword ? '숨김' : '보기' }}</button></div><p v-if="errors.password" class="error">{{ errors.password }}</p></div>
             <div class="field"><label for="passwordConfirm">비밀번호 확인 *</label><input id="passwordConfirm" v-model="form.passwordConfirm" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" placeholder="비밀번호를 다시 입력하세요" :aria-invalid="Boolean(passwordsMismatch || errors.passwordConfirm)" /><p v-if="passwordsMatch" class="match">✓ 비밀번호가 일치합니다.</p><p v-else-if="passwordsMismatch" class="error">비밀번호가 일치하지 않습니다.</p><p v-else-if="errors.passwordConfirm" class="error">{{ errors.passwordConfirm }}</p></div>
           </div>

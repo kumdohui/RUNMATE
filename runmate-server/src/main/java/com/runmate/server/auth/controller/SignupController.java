@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.runmate.server.auth.dto.SignupRequest;
 import com.runmate.server.auth.dto.SignupResponse;
-import com.runmate.server.auth.dto.LoginIdAvailabilityResponse;
-import com.runmate.server.auth.service.LoginIdAvailabilityService;
+import com.runmate.server.auth.dto.AvailabilityResponse;
+import com.runmate.server.auth.service.SignupAvailabilityService;
 import com.runmate.server.auth.service.SignupService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -23,11 +23,19 @@ import lombok.RequiredArgsConstructor;
 public class SignupController {
 
     private final SignupService signupService;
-    private final LoginIdAvailabilityService loginIdAvailabilityService;
+    private final SignupAvailabilityService signupAvailabilityService;
 
     @GetMapping("/login-id/availability")
-    public LoginIdAvailabilityResponse checkLoginId(@RequestParam String loginId) {
-        return loginIdAvailabilityService.check(loginId);
+    public AvailabilityResponse checkLoginId(@RequestParam String loginId) {
+        return signupAvailabilityService.checkLoginId(loginId);
+    }
+
+    @GetMapping("/nickname/availability")
+    public AvailabilityResponse checkNickname(
+            @RequestParam String nickname,
+            @RequestParam(required = false) Long phoneVerificationId
+    ) {
+        return signupAvailabilityService.checkNickname(nickname, phoneVerificationId);
     }
 
     @PostMapping("/signup")

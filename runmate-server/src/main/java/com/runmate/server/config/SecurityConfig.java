@@ -30,8 +30,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/signup",
                                 "/api/auth/login",
+                                "/api/auth/session",
                                 "/api/auth/csrf",
                                 "/api/auth/login-id/availability",
+                                "/api/auth/nickname/availability",
                                 "/api/auth/phone-verifications/**",
                                 "/api/auth/email-verifications/**",
                                 "/api/auth/kakao",

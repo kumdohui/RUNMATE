@@ -48,8 +48,12 @@ public class LoginController {
     }
 
     @GetMapping("/session")
-    public LoginResponse session(Authentication authentication) {
-        return toResponse((RunmatePrincipal) authentication.getPrincipal());
+    public ResponseEntity<LoginResponse> session(Authentication authentication) {
+        if (authentication == null
+                || !(authentication.getPrincipal() instanceof RunmatePrincipal principal)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(toResponse(principal));
     }
 
     @GetMapping("/csrf")

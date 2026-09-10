@@ -37,17 +37,17 @@ public record SignupRequest(
         String nickname,
 
         @NotNull(message = "이메일 인증 정보는 필수입니다.")
-        @Positive(message = "이메일 인증 번호는 양수여야 합니다.")
+        @Positive(message = "이메일 인증 정보를 확인해 주세요.")
         Long emailVerificationId,
 
         @NotNull(message = "전화번호 인증 정보는 필수입니다.")
-        @Positive(message = "전화번호 인증 번호는 양수여야 합니다.")
+        @Positive(message = "전화번호 인증 정보를 확인해 주세요.")
         Long phoneVerificationId,
 
         @NotEmpty(message = "필수 약관 동의 정보가 필요합니다.")
         List<
                 @NotNull(message = "약관 번호는 필수입니다.")
-                @Positive(message = "약관 번호는 양수여야 합니다.")
+                @Positive(message = "약관 동의 정보를 확인해 주세요.")
                 Long
         > termIds,
 
