@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.runmate.server.auth.dto.CsrfTokenResponse;
-import com.runmate.server.auth.dto.LoginRequest;
-import com.runmate.server.auth.dto.LoginResponse;
+import com.runmate.server.auth.dto.AuthDtos.CsrfTokenResponse;
+import com.runmate.server.auth.dto.AuthDtos.LoginRequest;
+import com.runmate.server.auth.dto.AuthDtos.LoginResponse;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.auth.service.LoginService;
 

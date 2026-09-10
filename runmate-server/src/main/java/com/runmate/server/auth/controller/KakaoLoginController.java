@@ -21,11 +21,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.runmate.server.auth.dto.KakaoLoginResult;
+import com.runmate.server.auth.dto.AuthDtos.KakaoLoginResult;
 import com.runmate.server.auth.dto.KakaoPendingProfile;
-import com.runmate.server.auth.dto.KakaoPendingProfileResponse;
-import com.runmate.server.auth.dto.KakaoSignupRequest;
-import com.runmate.server.auth.exception.KakaoLoginException;
+import com.runmate.server.auth.dto.AuthDtos.KakaoPendingProfileResponse;
+import com.runmate.server.auth.dto.AuthDtos.KakaoSignupRequest;
+import com.runmate.server.auth.dto.AuthDtos.LoginResponse;
+import com.runmate.server.auth.exception.AuthException;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.auth.service.KakaoLoginService;
 import com.runmate.server.auth.service.KakaoSignupService;
@@ -121,7 +122,7 @@ public class KakaoLoginController {
 
             authenticate(result.principal(), request, response);
             return redirectToFrontend("/?kakao=success");
-        } catch (KakaoLoginException exception) {
+        } catch (AuthException exception) {
             return redirectToFrontend("/login?kakao=failed");
         }
     }
@@ -133,7 +134,7 @@ public class KakaoLoginController {
     }
 
     @PostMapping("/signup")
-    public com.runmate.server.auth.dto.LoginResponse signup(
+    public LoginResponse signup(
             @jakarta.validation.Valid @RequestBody KakaoSignupRequest signupRequest,
             HttpServletRequest request,
             HttpServletResponse response
@@ -148,7 +149,7 @@ public class KakaoLoginController {
         );
         session.removeAttribute(PENDING_PROFILE_SESSION_KEY);
         authenticate(principal, request, response);
-        return new com.runmate.server.auth.dto.LoginResponse(
+        return new LoginResponse(
                 principal.userId(),
                 principal.loginId(),
                 principal.nickname(),
@@ -159,11 +160,11 @@ public class KakaoLoginController {
 
     private KakaoPendingProfile pendingProfile(HttpSession session) {
         if (session == null) {
-            throw new KakaoLoginException("카카오 로그인 정보가 만료되었습니다.");
+            throw new AuthException("카카오 로그인 정보가 만료되었습니다.");
         }
         Object value = session.getAttribute(PENDING_PROFILE_SESSION_KEY);
         if (!(value instanceof KakaoPendingProfile profile)) {
-            throw new KakaoLoginException("카카오 로그인 정보가 만료되었습니다.");
+            throw new AuthException("카카오 로그인 정보가 만료되었습니다.");
         }
         return profile;
     }

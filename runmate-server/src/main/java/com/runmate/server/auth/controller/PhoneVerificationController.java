@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.runmate.server.auth.dto.PhoneVerificationConfirmRequest;
-import com.runmate.server.auth.dto.PhoneVerificationConfirmResponse;
-import com.runmate.server.auth.dto.PhoneVerificationIssueResponse;
-import com.runmate.server.auth.dto.PhoneVerificationRequest;
+import com.runmate.server.auth.dto.AuthDtos.PhoneVerificationConfirmRequest;
+import com.runmate.server.auth.dto.AuthDtos.PhoneVerificationConfirmResponse;
+import com.runmate.server.auth.dto.AuthDtos.PhoneVerificationIssueResponse;
+import com.runmate.server.auth.dto.AuthDtos.PhoneVerificationRequest;
 import com.runmate.server.auth.service.PhoneVerificationService;
 
 import jakarta.validation.Valid;

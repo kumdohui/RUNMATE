@@ -16,9 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.runmate.server.auth.domain.EmailVerification;
 import com.runmate.server.auth.domain.EmailVerificationPurpose;
-import com.runmate.server.auth.dto.EmailVerificationConfirmResponse;
-import com.runmate.server.auth.dto.EmailVerificationIssueResponse;
-import com.runmate.server.auth.exception.SignupException;
+import com.runmate.server.auth.dto.AuthDtos.EmailVerificationConfirmResponse;
+import com.runmate.server.auth.dto.AuthDtos.EmailVerificationIssueResponse;
+import com.runmate.server.auth.exception.AuthException;
 import com.runmate.server.auth.repository.EmailVerificationRepository;
 import com.runmate.server.user.repository.UserRepository;
 
@@ -48,7 +48,7 @@ public class EmailVerificationService {
     public EmailVerificationIssueResponse issue(String rawEmail) {
         String email = rawEmail.trim().toLowerCase(Locale.ROOT);
         if (userRepository.existsByEmail(email)) {
-            throw new SignupException("이미 사용 중인 이메일입니다.");
+            throw new AuthException("이미 사용 중인 이메일입니다.");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -79,7 +79,7 @@ public class EmailVerificationService {
             helper.setText(buildSignupMailHtml(code), true);
             mailSender.send(message);
         } catch (MailException | MessagingException | java.io.UnsupportedEncodingException exception) {
-            throw new SignupException("인증 메일을 보내지 못했습니다. 메일 설정을 확인해 주세요.");
+            throw new AuthException("인증 메일을 보내지 못했습니다. 메일 설정을 확인해 주세요.");
         }
     }
 
@@ -129,7 +129,7 @@ public class EmailVerificationService {
                                 1,
                                 Duration.between(now, availableAt).toSeconds() + 1
                         );
-                        throw new SignupException(
+                        throw new AuthException(
                                 "인증번호는 " + remainingSeconds + "초 후 다시 받을 수 있습니다."
                         );
                     }
@@ -142,7 +142,7 @@ public class EmailVerificationService {
                         now.minusHours(1)
                 );
         if (hourlyCount >= HOURLY_ISSUE_LIMIT) {
-            throw new SignupException("인증번호는 최근 1시간 동안 최대 5회까지 받을 수 있습니다.");
+            throw new AuthException("인증번호는 최근 1시간 동안 최대 5회까지 받을 수 있습니다.");
         }
 
         long dailyCount = emailVerificationRepository
@@ -152,31 +152,31 @@ public class EmailVerificationService {
                         LocalDate.now().atStartOfDay()
                 );
         if (dailyCount >= DAILY_ISSUE_LIMIT) {
-            throw new SignupException("인증번호는 하루 최대 10회까지 받을 수 있습니다.");
+            throw new AuthException("인증번호는 하루 최대 10회까지 받을 수 있습니다.");
         }
     }
 
-    @Transactional(noRollbackFor = SignupException.class)
+    @Transactional(noRollbackFor = AuthException.class)
     public EmailVerificationConfirmResponse confirm(Long verificationId, String code) {
         EmailVerification verification = emailVerificationRepository.findById(verificationId)
-                .orElseThrow(() -> new SignupException("이메일 인증 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new AuthException("이메일 인증 정보를 찾을 수 없습니다."));
 
         LocalDateTime now = LocalDateTime.now();
         if (verification.getConsumedAt() != null) {
-            throw new SignupException("이미 사용된 이메일 인증입니다.");
+            throw new AuthException("이미 사용된 이메일 인증입니다.");
         }
         if (verification.getVerifiedAt() != null) {
             return new EmailVerificationConfirmResponse(verificationId, true);
         }
         if (!verification.getExpiresAt().isAfter(now)) {
-            throw new SignupException("인증 시간이 만료되었습니다. 인증번호를 다시 받아 주세요.");
+            throw new AuthException("인증 시간이 만료되었습니다. 인증번호를 다시 받아 주세요.");
         }
         if (!verification.canAttempt(now)) {
-            throw new SignupException("인증번호 입력 횟수를 초과했습니다. 인증번호를 다시 받아 주세요.");
+            throw new AuthException("인증번호 입력 횟수를 초과했습니다. 인증번호를 다시 받아 주세요.");
         }
         if (!passwordEncoder.matches(code, verification.getCodeHash())) {
             verification.recordFailedAttempt();
-            throw new SignupException("인증번호가 올바르지 않습니다.");
+            throw new AuthException("인증번호가 올바르지 않습니다.");
         }
 
         verification.verify(now);

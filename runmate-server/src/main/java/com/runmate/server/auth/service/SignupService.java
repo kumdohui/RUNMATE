@@ -14,9 +14,9 @@ import com.runmate.server.auth.domain.EmailVerification;
 import com.runmate.server.auth.domain.EmailVerificationPurpose;
 import com.runmate.server.auth.domain.PhoneVerification;
 import com.runmate.server.auth.domain.PhoneVerificationPurpose;
-import com.runmate.server.auth.dto.SignupRequest;
-import com.runmate.server.auth.dto.SignupResponse;
-import com.runmate.server.auth.exception.SignupException;
+import com.runmate.server.auth.dto.AuthDtos.SignupRequest;
+import com.runmate.server.auth.dto.AuthDtos.SignupResponse;
+import com.runmate.server.auth.exception.AuthException;
 import com.runmate.server.auth.repository.EmailVerificationRepository;
 import com.runmate.server.auth.repository.PhoneVerificationRepository;
 import com.runmate.server.terms.domain.Term;
@@ -63,7 +63,7 @@ public class SignupService {
 
         EmailVerification emailVerification = emailVerificationRepository
                 .findById(request.emailVerificationId())
-                .orElseThrow(() -> new SignupException(
+                .orElseThrow(() -> new AuthException(
                         "요청한 이메일 인증 정보를 확인할 수 없습니다."
                 ));
 
@@ -71,7 +71,7 @@ public class SignupService {
 
         PhoneVerification phoneVerification = phoneVerificationRepository
                 .findById(request.phoneVerificationId())
-                .orElseThrow(() -> new SignupException(
+                .orElseThrow(() -> new AuthException(
                         "요청한 휴대전화 인증 정보를 확인할 수 없습니다."
                 ));
 
@@ -126,25 +126,25 @@ public class SignupService {
             LocalDateTime now
     ) {
         if (verification.getPurpose() != EmailVerificationPurpose.SIGNUP) {
-            throw new SignupException(
+            throw new AuthException(
                     "회원가입을 위해 요청한 이메일 인증이 아닙니다."
             );
         }
 
         if (verification.getConsumedAt() != null) {
-            throw new SignupException(
+            throw new AuthException(
                     "이미 회원가입에 사용된 이메일 인증입니다."
             );
         }
 
         if (verification.getVerifiedAt() == null) {
-            throw new SignupException(
+            throw new AuthException(
                     "이메일 인증을 완료해 주세요."
             );
         }
 
         if (!verification.getVerifiedAt().plusMinutes(30).isAfter(now)) {
-            throw new SignupException(
+            throw new AuthException(
                     "이메일 인증 완료 후 30분이 지났습니다. 다시 인증해 주세요."
             );
         }
@@ -155,25 +155,25 @@ public class SignupService {
             LocalDateTime now
     ) {
         if (verification.getPurpose() != PhoneVerificationPurpose.SIGNUP) {
-            throw new SignupException(
+            throw new AuthException(
                     "회원가입을 위해 요청한 휴대전화 인증이 아닙니다."
             );
         }
 
         if (verification.getConsumedAt() != null) {
-            throw new SignupException(
+            throw new AuthException(
                     "이미 회원가입에 사용된 휴대전화 인증입니다."
             );
         }
 
         if (verification.getVerifiedAt() == null) {
-            throw new SignupException(
+            throw new AuthException(
                     "휴대전화 인증을 완료해 주세요."
             );
         }
 
         if (!verification.getVerifiedAt().plusMinutes(30).isAfter(now)) {
-            throw new SignupException(
+            throw new AuthException(
                     "휴대전화 인증 완료 후 30분이 지났습니다. 다시 인증해 주세요."
             );
         }
@@ -181,12 +181,12 @@ public class SignupService {
 
     private void validateUniqueLocalCredentials(String loginId, String email) {
         if (userRepository.existsByLoginId(loginId)) {
-            throw new SignupException(
+            throw new AuthException(
                     "이미 사용 중인 아이디입니다."
             );
         }
         if (userRepository.existsByEmail(email)) {
-            throw new SignupException(
+            throw new AuthException(
                     "이미 가입된 이메일입니다."
             );
         }
@@ -199,15 +199,15 @@ public class SignupService {
             EmailVerification emailVerification
     ) {
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new SignupException("현재 일반 로그인을 추가할 수 없는 계정입니다.");
+            throw new AuthException("현재 일반 로그인을 추가할 수 없는 계정입니다.");
         }
         if (user.getLoginId() != null || user.getPasswordHash() != null) {
-            throw new SignupException(
+            throw new AuthException(
                     "이미 일반 로그인이 등록된 계정입니다. 로그인 또는 계정 찾기를 이용해 주세요."
             );
         }
         if (!request.linkExistingAccount()) {
-            throw new SignupException(
+            throw new AuthException(
                     "기존 계정에 일반 로그인을 추가하려면 계정 연결에 동의해 주세요."
             );
         }
@@ -215,7 +215,7 @@ public class SignupService {
         String requestedNickname = request.nickname().trim();
         if (!requestedNickname.equals(user.getNickname())
                 && userRepository.existsByNickname(requestedNickname)) {
-            throw new SignupException("이미 사용 중인 닉네임입니다.");
+            throw new AuthException("이미 사용 중인 닉네임입니다.");
         }
 
         user.addLocalLogin(
@@ -235,7 +235,7 @@ public class SignupService {
             PhoneVerification phoneVerification
     ) {
         if (userRepository.existsByNickname(request.nickname())) {
-            throw new SignupException("이미 사용 중인 닉네임입니다.");
+            throw new AuthException("이미 사용 중인 닉네임입니다.");
         }
         User user = User.create(
                 request.loginId(),
@@ -260,7 +260,7 @@ public class SignupService {
         );
 
         if (agreedTerms.size() != requestedTermIds.size()) {
-            throw new SignupException(
+            throw new AuthException(
                     "존재하지 않는 약관이 포함되어 있습니다."
             );
         }
@@ -269,7 +269,7 @@ public class SignupService {
                 .anyMatch(term -> !term.isEffectiveAt(now));
 
         if (containsInvalidTerm) {
-            throw new SignupException(
+            throw new AuthException(
                     "현재 동의할 수 없는 약관이 포함되어 있습니다."
             );
         }
@@ -281,7 +281,7 @@ public class SignupService {
                 .collect(Collectors.toSet());
 
         if (!requestedTermIds.containsAll(requiredTermIds)) {
-            throw new SignupException(
+            throw new AuthException(
                     "필수 약관에 모두 동의해 주세요."
             );
         }

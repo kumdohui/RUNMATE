@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.runmate.server.auth.dto.EmailVerificationConfirmRequest;
-import com.runmate.server.auth.dto.EmailVerificationConfirmResponse;
-import com.runmate.server.auth.dto.EmailVerificationIssueResponse;
-import com.runmate.server.auth.dto.EmailVerificationRequest;
+import com.runmate.server.auth.dto.AuthDtos.EmailVerificationConfirmRequest;
+import com.runmate.server.auth.dto.AuthDtos.EmailVerificationConfirmResponse;
+import com.runmate.server.auth.dto.AuthDtos.EmailVerificationIssueResponse;
+import com.runmate.server.auth.dto.AuthDtos.EmailVerificationRequest;
 import com.runmate.server.auth.service.EmailVerificationService;
 
 import jakarta.validation.Valid;

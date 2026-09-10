@@ -11,9 +11,9 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
 import tools.jackson.databind.JsonNode;
-import com.runmate.server.auth.dto.KakaoLoginResult;
+import com.runmate.server.auth.dto.AuthDtos.KakaoLoginResult;
 import com.runmate.server.auth.dto.KakaoPendingProfile;
-import com.runmate.server.auth.exception.KakaoLoginException;
+import com.runmate.server.auth.exception.AuthException;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.user.domain.SocialAccount;
 import com.runmate.server.user.domain.SocialProvider;
@@ -54,10 +54,10 @@ public class KakaoLoginService {
                     )
                     .map(account -> loginExistingUser(account, profile))
                     .orElseGet(() -> KakaoLoginResult.signupRequired(profile));
-        } catch (KakaoLoginException exception) {
+        } catch (AuthException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new KakaoLoginException("카카오 로그인 처리 중 오류가 발생했습니다.", exception);
+            throw new AuthException("카카오 로그인 처리 중 오류가 발생했습니다.", exception);
         }
     }
 
@@ -79,7 +79,7 @@ public class KakaoLoginService {
 
         String accessToken = response == null ? null : response.path("access_token").asText(null);
         if (accessToken == null || accessToken.isBlank()) {
-            throw new KakaoLoginException("카카오 액세스 토큰을 발급받지 못했습니다.");
+            throw new AuthException("카카오 액세스 토큰을 발급받지 못했습니다.");
         }
         return accessToken;
     }
@@ -93,7 +93,7 @@ public class KakaoLoginService {
                 .body(JsonNode.class);
 
         if (response == null || response.path("id").isMissingNode()) {
-            throw new KakaoLoginException("카카오 사용자 정보를 가져오지 못했습니다.");
+            throw new AuthException("카카오 사용자 정보를 가져오지 못했습니다.");
         }
 
         JsonNode properties = response.path("properties");
@@ -113,10 +113,10 @@ public class KakaoLoginService {
     ) {
         User user = socialAccount.getUser();
         if (user.getStatus() == UserStatus.SUSPENDED) {
-            throw new KakaoLoginException("이용이 정지된 계정입니다.");
+            throw new AuthException("이용이 정지된 계정입니다.");
         }
         if (user.getStatus() == UserStatus.DELETED) {
-            throw new KakaoLoginException("탈퇴한 계정입니다.");
+            throw new AuthException("탈퇴한 계정입니다.");
         }
 
         LocalDateTime now = LocalDateTime.now();
