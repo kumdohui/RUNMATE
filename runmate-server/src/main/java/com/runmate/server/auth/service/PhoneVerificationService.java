@@ -166,13 +166,13 @@ public class PhoneVerificationService {
                 .orElse(null);
         if (user == null) {
             return new PhoneVerificationConfirmResponse(
-                    verification.getVerificationId(), true, false, false, java.util.List.of()
+                    verification.getVerificationId(), true, false, false, java.util.List.of(), null
             );
         }
 
-        java.util.List<String> providers = socialAccountRepository.findByUser(user)
+        java.util.List<String> providers = socialAccountRepository.findProvidersByUserId(user.getUserId())
                 .stream()
-                .map(account -> account.getProvider().name())
+                .map(Enum::name)
                 .toList();
         boolean localLoginRegistered = user.getLoginId() != null
                 && user.getPasswordHash() != null;
@@ -181,7 +181,8 @@ public class PhoneVerificationService {
                 true,
                 true,
                 localLoginRegistered,
-                providers
+                providers,
+                user.getNickname()
         );
     }
 }

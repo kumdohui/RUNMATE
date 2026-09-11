@@ -61,6 +61,19 @@ public class SocialAccount {
         return account;
     }
 
+    public static SocialAccount createNaver(
+            User user,
+            String providerUserId,
+            LocalDateTime now
+    ) {
+        SocialAccount account = new SocialAccount();
+        account.user = user;
+        account.provider = SocialProvider.NAVER;
+        account.providerUserId = providerUserId;
+        account.lastLoginAt = now;
+        return account;
+    }
+
     public void recordLogin(LocalDateTime now) {
         lastLoginAt = now;
     }

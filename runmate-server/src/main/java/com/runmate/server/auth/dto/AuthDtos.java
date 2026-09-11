@@ -107,13 +107,13 @@ public final class AuthDtos {
             boolean verified,
             boolean existingAccount,
             boolean localLoginRegistered,
-            List<String> socialProviders
+            List<String> socialProviders,
+            String existingNickname
     ) {
     }
 
     public record KakaoSignupRequest(
-            @NotBlank(message = "닉네임은 필수입니다.")
-            @Size(min = 2, max = 20, message = "닉네임은 2~20자여야 합니다.") String nickname,
+            String nickname,
             @NotNull(message = "휴대전화 인증 정보는 필수입니다.")
             @Positive(message = "휴대전화 인증 번호를 확인해 주세요.") Long phoneVerificationId,
             @NotEmpty(message = "필수 약관 동의 정보가 필요합니다.")
@@ -137,6 +137,38 @@ public final class AuthDtos {
                 com.runmate.server.auth.dto.KakaoPendingProfile pendingProfile
         ) {
             return new KakaoLoginResult(null, pendingProfile);
+        }
+
+        public boolean requiresSignup() {
+            return pendingProfile != null;
+        }
+    }
+
+    public record NaverSignupRequest(
+            String nickname,
+            @NotNull(message = "휴대전화 인증 정보는 필수입니다.")
+            @Positive(message = "휴대전화 인증 번호를 확인해 주세요.") Long phoneVerificationId,
+            @NotEmpty(message = "필수 약관 동의 정보가 필요합니다.")
+            List<@NotNull @Positive Long> termIds,
+            @AssertTrue(message = "만 14세 이상만 가입할 수 있습니다.") boolean ageConfirmed
+    ) {
+    }
+
+    public record NaverPendingProfileResponse(String nickname, String profileImageUrl) {
+    }
+
+    public record NaverLoginResult(
+            RunmatePrincipal principal,
+            com.runmate.server.auth.dto.NaverPendingProfile pendingProfile
+    ) {
+        public static NaverLoginResult authenticated(RunmatePrincipal principal) {
+            return new NaverLoginResult(principal, null);
+        }
+
+        public static NaverLoginResult signupRequired(
+                com.runmate.server.auth.dto.NaverPendingProfile pendingProfile
+        ) {
+            return new NaverLoginResult(null, pendingProfile);
         }
 
         public boolean requiresSignup() {

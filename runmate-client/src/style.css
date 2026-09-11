@@ -41,6 +41,7 @@
 .kakao-signup-card h1 { margin: 14px 0 8px; font-size: 32px; }
 .kakao-signup-card > p { margin: 0 0 32px; color: #65736a; }
 .kakao-badge { display: inline-flex; padding: 7px 11px; border-radius: 999px; background: #fee500; color: #191919; font-size: 12px; font-weight: 900; }
+.kakao-badge--naver { background: #03c75a; color: #fff; }
 .kakao-loading { padding: 28px; text-align: center; color: #65736a; }
 .kakao-profile { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
 .kakao-profile > img, .kakao-profile > span { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #dff1e5; color: #12633a; font-size: 24px; font-weight: 900; }
@@ -53,6 +54,28 @@
 .kakao-input-action button:disabled { opacity: .55; cursor: default; }
 .development-code { margin: 9px 0 0; padding: 10px 12px; border-radius: 10px; background: #fff8d7; color: #665500; font-size: 13px; }
 .verified-message { margin: -5px 0 22px; color: #17854d; font-weight: 800; }
+.social-verification-result { margin: 14px 0 24px; padding: 20px; border: 1px solid #e1e8e4; border-radius: 16px; background: #fafcfb; color: #315c45; font-size: 14px; line-height: 1.55; }
+.social-verification-result strong { display: block; color: #173f2d; }
+.social-verification-result p { margin: 0; }
+.social-verification-result b { color: #176b42; }
+.existing-account-heading { display: flex; align-items: center; gap: 11px; }
+.existing-account-heading div { display: grid; gap: 1px; }
+.existing-account-heading small { color: #7b8a82; font-size: 12px; }
+.existing-account-heading strong { font-size: 18px; }
+.account-check { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: #e6f3eb; color: #197247; font-weight: 900; }
+.connected-login-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin: 16px 0 2px 41px; }
+.login-method-item { display: inline-flex; align-items: center; gap: 6px; color: #56665d; font-size: 13px; font-weight: 700; }
+.login-method-item i { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid #d8dfdb; border-radius: 7px; background: #fff; color: #3f5047; font-size: 9px; font-style: normal; font-weight: 900; }
+.login-method-item i.login-method-mark--kakao { border-color: #f3df72; background: #fff9d7; color: #493d00; }
+.login-method-item i.login-method-mark--naver { border-color: #bce7cd; background: #effaf3; color: #068f43; }
+.social-link-preview { display: flex; align-items: center; gap: 11px; margin-top: 17px; padding-top: 16px; border-top: 1px solid #e5eae7; color: #315c45; }
+.social-link-preview > div { display: grid; gap: 1px; }
+.social-link-preview strong { font-size: 14px; }
+.social-link-preview small { color: #718078; font-size: 12px; }
+.social-link-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; font-size: 13px; font-weight: 900; }
+.social-link-mark--naver { background: #03c75a; color: #fff; }
+.social-link-mark--kakao { background: #fee500; color: #241f00; }
+.social-link-preview.blocked { color: #a13a33; }
 .kakao-terms { display: grid; gap: 12px; margin: 26px 0 18px; padding: 18px; border-radius: 16px; background: #f6f9f7; }
 .kakao-terms label { display: flex; align-items: center; gap: 9px; font-size: 14px; }
 .kakao-all-term { padding-bottom: 12px; border-bottom: 1px solid #dfe7e1; font-weight: 900; }

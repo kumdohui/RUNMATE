@@ -23,7 +23,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/phone-verifications/**",
                                 "/api/auth/email-verifications/**",
-                                "/api/auth/kakao/signup"
+                                "/api/auth/kakao/signup",
+                                "/api/auth/naver/signup"
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
@@ -39,7 +40,11 @@ public class SecurityConfig {
                                 "/api/auth/kakao",
                                 "/api/auth/kakao/callback",
                                 "/api/auth/kakao/pending",
-                                "/api/auth/kakao/signup"
+                                "/api/auth/kakao/signup",
+                                "/api/auth/naver",
+                                "/api/auth/naver/callback",
+                                "/api/auth/naver/pending",
+                                "/api/auth/naver/signup"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -36,6 +36,10 @@ async function submit() {
 function startKakaoLogin() {
   window.location.href = '/api/auth/kakao?prompt=login'
 }
+
+function startNaverLogin() {
+  window.location.href = '/api/auth/naver'
+}
 </script>
 
 <template>
@@ -54,7 +58,7 @@ function startKakaoLogin() {
         </form>
         <div class="social-divider"><span>또는 간편 로그인</span></div>
         <button class="social-button social-button--kakao" type="button" @click="startKakaoLogin"><b>k</b> 카카오로 시작하기</button>
-        <button class="social-button social-button--naver" type="button" @click="message = '네이버 로그인은 OAuth 설정 후 연결됩니다.'"><b>N</b> 네이버로 시작하기</button>
+        <button class="social-button social-button--naver" type="button" @click="startNaverLogin"><b>N</b> 네이버로 시작하기</button>
       </section>
     </main>
   </div>

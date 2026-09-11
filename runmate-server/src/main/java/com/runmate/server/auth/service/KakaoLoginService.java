@@ -77,7 +77,7 @@ public class KakaoLoginService {
                 .retrieve()
                 .body(JsonNode.class);
 
-        String accessToken = response == null ? null : response.path("access_token").asText(null);
+        String accessToken = response == null ? null : response.path("access_token").asString(null);
         if (accessToken == null || accessToken.isBlank()) {
             throw new AuthException("카카오 액세스 토큰을 발급받지 못했습니다.");
         }
@@ -97,11 +97,11 @@ public class KakaoLoginService {
         }
 
         JsonNode properties = response.path("properties");
-        String nickname = properties.path("nickname").asText("카카오 러너");
-        String profileImageUrl = properties.path("profile_image").asText(null);
+        String nickname = properties.path("nickname").asString("");
+        String profileImageUrl = properties.path("profile_image").asString(null);
 
         return new KakaoPendingProfile(
-                response.path("id").asText(),
+                response.path("id").asString(),
                 nickname,
                 profileImageUrl
         );

@@ -12,6 +12,18 @@ const message = ref('')
 const developmentCode = ref('')
 const verificationId = ref(null)
 const phoneVerified = ref(false)
+const existingAccount = ref(false)
+const existingNickname = ref('')
+const existingLocalLogin = ref(false)
+const existingSocialProviders = ref([])
+const existingLoginMethods = computed(() => {
+  const methods = []
+  if (existingLocalLogin.value) methods.push({ key: 'LOCAL', label: '일반 로그인', mark: 'ID' })
+  if (existingSocialProviders.value.includes('KAKAO')) methods.push({ key: 'KAKAO', label: '카카오', mark: 'K' })
+  if (existingSocialProviders.value.includes('NAVER')) methods.push({ key: 'NAVER', label: '네이버', mark: 'N' })
+  return methods
+})
+const kakaoAlreadyLinked = computed(() => existingSocialProviders.value.includes('KAKAO'))
 const profile = reactive({ nickname: '', profileImageUrl: '' })
 const form = reactive({ phoneNumber: '', code: '', serviceTerm: false, privacyTerm: false, ageConfirmed: false })
 const allTermsAgreed = computed({
@@ -52,6 +64,10 @@ onMounted(async () => {
 async function issueCode() {
   message.value = ''
   phoneVerified.value = false
+  existingAccount.value = false
+  existingNickname.value = ''
+  existingLocalLogin.value = false
+  existingSocialProviders.value = []
   verificationId.value = null
   developmentCode.value = ''
   const phoneNumber = normalizePhoneNumber(form.phoneNumber)
@@ -92,9 +108,16 @@ async function confirmCode() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: form.code }),
     })
-    await readJson(response)
+    const data = await readJson(response)
     phoneVerified.value = true
-    message.value = '휴대전화 인증이 완료되었습니다.'
+    existingAccount.value = Boolean(data.existingAccount)
+    existingNickname.value = data.existingNickname || ''
+    existingLocalLogin.value = Boolean(data.localLoginRegistered)
+    existingSocialProviders.value = data.socialProviders || []
+    if (existingAccount.value) {
+      profile.nickname = existingNickname.value
+    }
+    message.value = ''
   } catch (error) {
     message.value = error.message
   } finally {
@@ -104,12 +127,16 @@ async function confirmCode() {
 
 async function completeSignup() {
   message.value = ''
-  if ([...profile.nickname.trim()].length < 2 || [...profile.nickname.trim()].length > 20) {
+  if (!existingAccount.value && ([...profile.nickname.trim()].length < 2 || [...profile.nickname.trim()].length > 20)) {
     message.value = '닉네임은 2~20자로 입력해 주세요.'
     return
   }
   if (!phoneVerified.value) {
     message.value = '휴대전화 인증을 완료해 주세요.'
+    return
+  }
+  if (kakaoAlreadyLinked.value) {
+    message.value = '이 회원에는 이미 카카오 로그인이 연결되어 있습니다.'
     return
   }
   if (!form.serviceTerm || !form.privacyTerm || !form.ageConfirmed) {
@@ -152,15 +179,6 @@ async function completeSignup() {
 
         <div v-if="loading" class="kakao-loading">카카오 정보를 확인하고 있습니다.</div>
         <form v-else @submit.prevent="completeSignup">
-          <div class="kakao-profile">
-            <img v-if="profile.profileImageUrl" :src="profile.profileImageUrl" alt="카카오 프로필" />
-            <span v-else>{{ profile.nickname.slice(0, 1) || 'R' }}</span>
-            <div class="kakao-field">
-              <label for="kakaoNickname">닉네임</label>
-              <input id="kakaoNickname" v-model="profile.nickname" maxlength="20" />
-            </div>
-          </div>
-
           <div class="kakao-field">
             <label for="kakaoPhone">휴대전화 인증</label>
             <div class="kakao-input-action">
@@ -177,9 +195,35 @@ async function completeSignup() {
             </div>
             <p v-if="developmentCode" class="development-code">개발용 인증번호: <strong>{{ developmentCode }}</strong></p>
           </div>
-          <p v-if="phoneVerified" class="verified-message">✓ 휴대전화 인증 완료</p>
+          <div v-if="phoneVerified" class="social-verification-result">
+            <template v-if="existingAccount">
+              <div class="existing-account-heading">
+                <span class="account-check">✓</span>
+                <div><small>기존 계정</small><strong>{{ existingNickname }}</strong></div>
+              </div>
+              <div class="connected-login-row">
+                <span v-for="method in existingLoginMethods" :key="method.key" class="login-method-item">
+                  <i :class="`login-method-mark--${method.key.toLowerCase()}`">{{ method.mark }}</i>{{ method.label }}
+                </span>
+              </div>
+              <div class="social-link-preview" :class="{ blocked: kakaoAlreadyLinked }">
+                <span class="social-link-mark social-link-mark--kakao">K</span>
+                <div><strong>{{ kakaoAlreadyLinked ? '카카오 로그인 등록 완료' : '카카오 로그인 추가' }}</strong><small>{{ kakaoAlreadyLinked ? '이미 이 계정에서 사용할 수 있어요' : '가입을 완료하면 이 계정으로 함께 로그인할 수 있어요' }}</small></div>
+              </div>
+            </template>
+            <p v-else>본인 인증이 완료됐어요. 사용할 닉네임을 확인해 주세요.</p>
+          </div>
 
-          <div class="kakao-terms">
+          <div v-if="phoneVerified" class="kakao-profile">
+            <img v-if="profile.profileImageUrl" :src="profile.profileImageUrl" alt="카카오 프로필" />
+            <span v-else>{{ profile.nickname.slice(0, 1) || 'R' }}</span>
+            <div class="kakao-field">
+              <label for="kakaoNickname">닉네임</label>
+              <input id="kakaoNickname" v-model="profile.nickname" maxlength="20" placeholder="닉네임을 입력해 주세요" :disabled="existingAccount" />
+            </div>
+          </div>
+
+          <div v-if="phoneVerified" class="kakao-terms">
             <label class="kakao-all-term"><input v-model="allTermsAgreed" type="checkbox" /> 필수 약관 전체 동의</label>
             <label><input v-model="form.serviceTerm" type="checkbox" /> <span>[필수] 서비스 이용약관 <button type="button" class="kakao-term-detail" @click="openTerms('service')">약관 내용 보기</button></span></label>
             <label><input v-model="form.privacyTerm" type="checkbox" /> <span>[필수] 개인정보 수집·이용 동의 <button type="button" class="kakao-term-detail" @click="openTerms('privacy')">약관 내용 보기</button></span></label>
@@ -188,7 +232,7 @@ async function completeSignup() {
           </div>
 
           <p v-if="message" class="kakao-message">{{ message }}</p>
-          <button class="kakao-complete" type="submit" :disabled="submitting">{{ submitting ? '가입 처리 중' : 'RUNMATE 시작하기' }}</button>
+          <button v-if="phoneVerified" class="kakao-complete" type="submit" :disabled="submitting || kakaoAlreadyLinked">{{ submitting ? '가입 처리 중' : 'RUNMATE 시작하기' }}</button>
         </form>
       </section>
     </main>

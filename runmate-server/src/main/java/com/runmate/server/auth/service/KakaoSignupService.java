@@ -106,12 +106,17 @@ public class KakaoSignupService {
             KakaoSignupRequest request,
             PhoneVerification phoneVerification
     ) {
-        if (userRepository.existsByNickname(request.nickname())) {
+        String nickname = request.nickname() == null ? "" : request.nickname().trim();
+        int nicknameLength = nickname.codePointCount(0, nickname.length());
+        if (nicknameLength < 2 || nicknameLength > 20) {
+            throw new AuthException("닉네임은 2~20자로 입력해 주세요.");
+        }
+        if (userRepository.existsByNickname(nickname)) {
             throw new AuthException("이미 사용 중인 닉네임입니다.");
         }
         return userRepository.save(User.createSocial(
                 phoneVerification.getPhoneNumber(),
-                request.nickname().trim(),
+                nickname,
                 phoneVerification.getVerifiedAt()
         ));
     }
