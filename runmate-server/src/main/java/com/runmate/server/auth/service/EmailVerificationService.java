@@ -25,9 +25,11 @@ import com.runmate.server.user.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailVerificationService {
 
     private static final int EXPIRES_IN_SECONDS = 300;
@@ -45,23 +47,40 @@ public class EmailVerificationService {
     private String mailUsername;
 
     @Transactional
-    public EmailVerificationIssueResponse issue(String rawEmail) {
+    public EmailVerificationIssueResponse issue(
+            String rawEmail,
+            EmailVerificationPurpose requestedPurpose
+    ) {
         String email = rawEmail.trim().toLowerCase(Locale.ROOT);
-        if (userRepository.existsByEmail(email)) {
+        EmailVerificationPurpose purpose = requestedPurpose == null
+                ? EmailVerificationPurpose.SIGNUP
+                : requestedPurpose;
+        if (purpose != EmailVerificationPurpose.SIGNUP
+                && purpose != EmailVerificationPurpose.RESET_PASSWORD) {
+            throw new AuthException("지원하지 않는 이메일 인증 목적입니다.");
+        }
+        if (purpose == EmailVerificationPurpose.SIGNUP && userRepository.existsByEmail(email)) {
             throw new AuthException("이미 사용 중인 이메일입니다.");
         }
+        boolean passwordResetRecipientExists = purpose != EmailVerificationPurpose.RESET_PASSWORD
+                || userRepository.findByEmail(email)
+                        .filter(user -> user.getPasswordHash() != null)
+                        .isPresent();
 
         LocalDateTime now = LocalDateTime.now();
-        validateIssueRateLimit(email, now);
+        validateIssueRateLimit(email, purpose, now);
 
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
-        EmailVerification verification = EmailVerification.createForSignup(
+        EmailVerification verification = EmailVerification.create(
                 email,
                 passwordEncoder.encode(code),
+                purpose,
                 now.plusSeconds(EXPIRES_IN_SECONDS)
         );
         EmailVerification saved = emailVerificationRepository.save(verification);
-        sendSignupCode(email, code);
+        if (passwordResetRecipientExists) {
+            sendCode(email, code, purpose);
+        }
 
         return new EmailVerificationIssueResponse(
                 saved.getVerificationId(),
@@ -69,21 +88,28 @@ public class EmailVerificationService {
         );
     }
 
-    private void sendSignupCode(String email, String code) {
+    private void sendCode(String email, String code, EmailVerificationPurpose purpose) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
             helper.setFrom(mailUsername, "RUNMATE");
             helper.setTo(email);
-            helper.setSubject("[RUNMATE] 회원가입 이메일 인증번호");
-            helper.setText(buildSignupMailHtml(code), true);
+            boolean passwordReset = purpose == EmailVerificationPurpose.RESET_PASSWORD;
+            helper.setSubject(passwordReset
+                    ? "[RUNMATE] 비밀번호 재설정 인증번호"
+                    : "[RUNMATE] 회원가입 이메일 인증번호");
+            helper.setText(buildMailHtml(code, passwordReset), true);
             mailSender.send(message);
         } catch (MailException | MessagingException | java.io.UnsupportedEncodingException exception) {
+            if (purpose == EmailVerificationPurpose.RESET_PASSWORD) {
+                log.warn("비밀번호 재설정 인증 메일을 발송하지 못했습니다: {}", email, exception);
+                return;
+            }
             throw new AuthException("인증 메일을 보내지 못했습니다. 메일 설정을 확인해 주세요.");
         }
     }
 
-    private String buildSignupMailHtml(String code) {
+    private String buildMailHtml(String code, boolean passwordReset) {
         return """
                 <!doctype html>
                 <html lang="ko">
@@ -94,8 +120,8 @@ public class EmailVerificationService {
                         <tr><td style="height:8px;background:#1c6b48;"></td></tr>
                         <tr><td style="padding:38px 42px 16px;">
                           <div style="font-size:15px;font-weight:800;letter-spacing:.12em;color:#1c6b48;">RUNMATE</div>
-                          <h1 style="margin:18px 0 12px;font-size:27px;line-height:1.35;color:#173427;">이메일 인증을 완료해 주세요</h1>
-                          <p style="margin:0;color:#68766f;font-size:15px;line-height:1.75;">회원가입 화면에 아래 인증번호를 입력해 주세요.</p>
+                          <h1 style="margin:18px 0 12px;font-size:27px;line-height:1.35;color:#173427;">%s</h1>
+                          <p style="margin:0;color:#68766f;font-size:15px;line-height:1.75;">%s</p>
                         </td></tr>
                         <tr><td style="padding:14px 42px;">
                           <div style="padding:24px;text-align:center;background:#eef6f1;border:1px solid #cfe1d5;border-radius:14px;">
@@ -112,14 +138,22 @@ public class EmailVerificationService {
                   </table>
                 </body>
                 </html>
-                """.formatted(code);
+                """.formatted(
+                        passwordReset ? "비밀번호 재설정을 확인해 주세요" : "이메일 인증을 완료해 주세요",
+                        passwordReset ? "비밀번호 재설정 화면에 아래 인증번호를 입력해 주세요." : "회원가입 화면에 아래 인증번호를 입력해 주세요.",
+                        code
+                );
     }
 
-    private void validateIssueRateLimit(String email, LocalDateTime now) {
+    private void validateIssueRateLimit(
+            String email,
+            EmailVerificationPurpose purpose,
+            LocalDateTime now
+    ) {
         emailVerificationRepository
                 .findTopByEmailAndPurposeOrderByCreatedAtDesc(
                         email,
-                        EmailVerificationPurpose.SIGNUP
+                        purpose
                 )
                 .ifPresent(latest -> {
                     LocalDateTime availableAt = latest.getCreatedAt()
@@ -138,7 +172,7 @@ public class EmailVerificationService {
         long hourlyCount = emailVerificationRepository
                 .countByEmailAndPurposeAndCreatedAtGreaterThanEqual(
                         email,
-                        EmailVerificationPurpose.SIGNUP,
+                        purpose,
                         now.minusHours(1)
                 );
         if (hourlyCount >= HOURLY_ISSUE_LIMIT) {
@@ -148,7 +182,7 @@ public class EmailVerificationService {
         long dailyCount = emailVerificationRepository
                 .countByEmailAndPurposeAndCreatedAtGreaterThanEqual(
                         email,
-                        EmailVerificationPurpose.SIGNUP,
+                        purpose,
                         LocalDate.now().atStartOfDay()
                 );
         if (dailyCount >= DAILY_ISSUE_LIMIT) {

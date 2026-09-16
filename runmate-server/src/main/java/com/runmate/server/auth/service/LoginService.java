@@ -13,6 +13,7 @@ import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +25,7 @@ public class LoginService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Transactional(noRollbackFor = AuthException.class)
     public RunmatePrincipal login(LoginRequest request) {
@@ -45,7 +47,8 @@ public class LoginService {
         }
 
         user.recordLoginSuccess(now);
-        return new RunmatePrincipal(user.getUserId(), user.getLoginId(), user.getNickname(), user.getRole().name(), user.getProfileImageUrl());
+        return new RunmatePrincipal(user.getUserId(), user.getLoginId(), user.getNickname(),
+                user.getRole().name(), profileImageUrlResolver.resolve(user));
     }
 
     private AuthException invalidCredentials() {

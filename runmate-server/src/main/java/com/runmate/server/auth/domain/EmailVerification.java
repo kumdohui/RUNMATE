@@ -50,15 +50,16 @@ public class EmailVerification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt; 
 
-    public static EmailVerification createForSignup(
+    public static EmailVerification create(
             String email,
             String codeHash,
+            EmailVerificationPurpose purpose,
             LocalDateTime expiresAt
     ) {
         EmailVerification verification = new EmailVerification();
         verification.email = email;
         verification.codeHash = codeHash;
-        verification.purpose = EmailVerificationPurpose.SIGNUP;
+        verification.purpose = purpose;
         verification.expiresAt = expiresAt;
         return verification;
     }
@@ -80,6 +81,12 @@ public class EmailVerification {
 
     public boolean isUsableForSignup(LocalDateTime now){
         return purpose == EmailVerificationPurpose.SIGNUP
+                && verifiedAt != null
+                && consumedAt == null
+                && verifiedAt.plusMinutes(30).isAfter(now);
+    }
+    public boolean isUsableForPasswordReset(LocalDateTime now) {
+        return purpose == EmailVerificationPurpose.RESET_PASSWORD
                 && verifiedAt != null
                 && consumedAt == null
                 && verifiedAt.plusMinutes(30).isAfter(now);

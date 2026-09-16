@@ -25,6 +25,7 @@ import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.repository.SocialAccountRepository;
 import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,6 +37,7 @@ public class NaverSignupService {
     private final PhoneVerificationRepository phoneVerificationRepository;
     private final TermRepository termRepository;
     private final UserTermAgreementRepository agreementRepository;
+    private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Transactional
     public RunmatePrincipal signup(NaverPendingProfile profile, NaverSignupRequest request,
@@ -58,8 +60,7 @@ public class NaverSignupService {
         verification.consume(now);
         user.recordLoginSuccess(now);
         return new RunmatePrincipal(user.getUserId(), user.getLoginId(), user.getNickname(),
-                user.getRole().name(), user.getProfileImageUrl() == null
-                ? profile.profileImageUrl() : user.getProfileImageUrl());
+                user.getRole().name(), profileImageUrlResolver.resolve(user, profile.profileImageUrl()));
     }
 
     private User linkableExistingUser(User user) {

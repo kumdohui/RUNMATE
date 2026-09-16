@@ -3,6 +3,8 @@ package com.runmate.server.auth.dto;
 import java.util.List;
 
 import com.runmate.server.auth.security.RunmatePrincipal;
+import com.runmate.server.auth.domain.EmailVerificationPurpose;
+import com.runmate.server.auth.domain.PhoneVerificationPurpose;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
@@ -65,7 +67,48 @@ public final class AuthDtos {
 
     public record EmailVerificationRequest(
             @NotBlank(message = "이메일은 필수입니다.")
-            @Email(message = "이메일 주소를 확인해 주세요.") String email
+            @Email(message = "이메일 주소를 확인해 주세요.") String email,
+            EmailVerificationPurpose purpose
+    ) {
+    }
+
+    public record PasswordResetRequest(
+            @NotNull(message = "이메일 인증 정보는 필수입니다.")
+            @Positive(message = "이메일 인증 정보를 확인해 주세요.") Long emailVerificationId,
+            @NotBlank(message = "새 비밀번호를 입력해 주세요.")
+            @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*\\p{Punct})[A-Za-z\\d\\p{Punct}]{8,20}$", message = "비밀번호는 8~20자이며 영문자, 숫자, 특수문자를 각각 1개 이상 포함해야 합니다.")
+            String newPassword
+    ) {
+    }
+
+    public record LoginIdRecoveryRequest(
+            @NotNull(message = "휴대전화 인증 정보는 필수입니다.")
+            @Positive(message = "휴대전화 인증 정보를 확인해 주세요.") Long phoneVerificationId
+    ) {
+    }
+
+    public record LoginIdRecoveryResponse(
+            boolean accountFound,
+            String maskedLoginId,
+            String maskedEmail,
+            List<String> socialProviders
+    ) {
+    }
+
+    public record PasswordRecoveryRequest(
+            @NotBlank(message = "아이디를 입력해 주세요.") String loginId
+    ) {
+    }
+
+    public record PasswordRecoveryFromPhoneRequest(
+            @NotNull(message = "휴대전화 인증 정보는 필수입니다.")
+            @Positive(message = "휴대전화 인증 정보를 확인해 주세요.") Long phoneVerificationId
+    ) {
+    }
+
+    public record PasswordRecoveryResponse(
+            Long emailVerificationId,
+            String maskedEmail
     ) {
     }
 
@@ -85,7 +128,8 @@ public final class AuthDtos {
             @NotBlank(message = "휴대전화 번호는 필수입니다.")
             @Pattern(regexp = "^01[016789][0-9]{7,8}$", message = "휴대전화 번호를 확인해 주세요.")
             String phoneNumber,
-            Boolean accountLinkingAllowed
+            Boolean accountLinkingAllowed,
+            PhoneVerificationPurpose purpose
     ) {
     }
 

@@ -19,6 +19,7 @@ import com.runmate.server.user.domain.SocialProvider;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.repository.SocialAccountRepository;
+import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.JsonNode;
@@ -30,6 +31,7 @@ public class NaverLoginService {
     private static final String USER_INFO_URL = "https://openapi.naver.com/v1/nid/me";
 
     private final SocialAccountRepository socialAccountRepository;
+    private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Value("${naver.client-id}")
     private String clientId;
@@ -108,7 +110,7 @@ public class NaverLoginService {
         socialAccount.recordLogin(now);
         return NaverLoginResult.authenticated(new RunmatePrincipal(
                 user.getUserId(), user.getLoginId(), user.getNickname(), user.getRole().name(),
-                user.getProfileImageUrl() == null ? profile.profileImageUrl() : user.getProfileImageUrl()
+                profileImageUrlResolver.resolve(user, profile.profileImageUrl())
         ));
     }
 

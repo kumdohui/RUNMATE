@@ -23,6 +23,9 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/phone-verifications/**",
                                 "/api/auth/email-verifications/**",
+                                "/api/auth/password/reset",
+                                "/api/auth/password/recovery/**",
+                                "/api/auth/login-id/recovery",
                                 "/api/auth/kakao/signup",
                                 "/api/auth/naver/signup"
                         )
@@ -37,6 +40,9 @@ public class SecurityConfig {
                                 "/api/auth/nickname/availability",
                                 "/api/auth/phone-verifications/**",
                                 "/api/auth/email-verifications/**",
+                                "/api/auth/password/reset",
+                                "/api/auth/password/recovery/**",
+                                "/api/auth/login-id/recovery",
                                 "/api/auth/kakao",
                                 "/api/auth/kakao/callback",
                                 "/api/auth/kakao/pending",

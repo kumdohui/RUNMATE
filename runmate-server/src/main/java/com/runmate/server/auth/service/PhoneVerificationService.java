@@ -43,21 +43,32 @@ public class PhoneVerificationService {
     @Transactional
     public PhoneVerificationIssueResponse issue(
             String rawPhoneNumber,
-            boolean accountLinkingAllowed
+            boolean accountLinkingAllowed,
+            PhoneVerificationPurpose requestedPurpose
     ) {
         if (!developmentMode) {
             throw new AuthException("문자 발송 서비스가 설정되지 않았습니다.");
         }
 
         String phoneNumber = rawPhoneNumber.replace("-", "");
-        validateExistingAccount(phoneNumber, accountLinkingAllowed);
+        PhoneVerificationPurpose purpose = requestedPurpose == null
+                ? PhoneVerificationPurpose.SIGNUP
+                : requestedPurpose;
+        if (purpose != PhoneVerificationPurpose.SIGNUP
+                && purpose != PhoneVerificationPurpose.FIND_LOGIN_ID) {
+            throw new AuthException("지원하지 않는 휴대전화 인증 목적입니다.");
+        }
+        if (purpose == PhoneVerificationPurpose.SIGNUP) {
+            validateExistingAccount(phoneNumber, accountLinkingAllowed);
+        }
         LocalDateTime now = LocalDateTime.now();
-        validateIssueRateLimit(phoneNumber, now);
+        validateIssueRateLimit(phoneNumber, purpose, now);
 
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
-        PhoneVerification verification = PhoneVerification.createForSignup(
+        PhoneVerification verification = PhoneVerification.create(
                 phoneNumber,
                 passwordEncoder.encode(code),
+                purpose,
                 now.plusSeconds(EXPIRES_IN_SECONDS)
         );
         PhoneVerification saved = phoneVerificationRepository.save(verification);
@@ -87,11 +98,15 @@ public class PhoneVerificationService {
                 });
     }
 
-    private void validateIssueRateLimit(String phoneNumber, LocalDateTime now) {
+    private void validateIssueRateLimit(
+            String phoneNumber,
+            PhoneVerificationPurpose purpose,
+            LocalDateTime now
+    ) {
         phoneVerificationRepository
                 .findTopByPhoneNumberAndPurposeOrderByCreatedAtDesc(
                         phoneNumber,
-                        PhoneVerificationPurpose.SIGNUP
+                        purpose
                 )
                 .ifPresent(latest -> {
                     LocalDateTime availableAt = latest.getCreatedAt()
@@ -110,7 +125,7 @@ public class PhoneVerificationService {
         long hourlyCount = phoneVerificationRepository
                 .countByPhoneNumberAndPurposeAndCreatedAtGreaterThanEqual(
                         phoneNumber,
-                        PhoneVerificationPurpose.SIGNUP,
+                        purpose,
                         now.minusHours(1)
                 );
         if (hourlyCount >= HOURLY_ISSUE_LIMIT) {
@@ -122,7 +137,7 @@ public class PhoneVerificationService {
         long dailyCount = phoneVerificationRepository
                 .countByPhoneNumberAndPurposeAndCreatedAtGreaterThanEqual(
                         phoneNumber,
-                        PhoneVerificationPurpose.SIGNUP,
+                        purpose,
                         LocalDate.now().atStartOfDay()
                 );
         if (dailyCount >= DAILY_ISSUE_LIMIT) {

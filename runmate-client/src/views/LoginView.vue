@@ -52,7 +52,7 @@ function startNaverLogin() {
         <form @submit.prevent="submit">
           <label for="loginId">아이디</label><input id="loginId" v-model="form.loginId" type="text" autocomplete="username" placeholder="아이디를 입력하세요" />
           <label for="loginPassword">비밀번호</label><div class="login-password"><input id="loginPassword" v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="비밀번호를 입력하세요" /><button type="button" @click="showPassword = !showPassword">{{ showPassword ? '숨김' : '보기' }}</button></div>
-          <div class="login-options"><label><input v-model="rememberLoginId" type="checkbox" /> 아이디 저장</label><a href="#" @click.prevent>아이디·비밀번호 찾기</a></div>
+          <div class="login-options"><label><input v-model="rememberLoginId" type="checkbox" /> 아이디 저장</label><span class="login-recovery-links"><RouterLink to="/find-login-id">아이디 찾기</RouterLink><i></i><RouterLink to="/password-reset">비밀번호 찾기</RouterLink></span></div>
           <p v-if="message" class="login-error">{{ message }}</p>
           <button class="login-submit" type="submit" :disabled="submitting">{{ submitting ? '로그인 중...' : '로그인' }}</button>
         </form>
@@ -63,3 +63,7 @@ function startNaverLogin() {
     </main>
   </div>
 </template>
+
+<style scoped>
+.login-recovery-links{display:flex;align-items:center;gap:7px}.login-recovery-links i{width:1px;height:10px;background:#cbd4cf}.login-recovery-links a{color:inherit;text-decoration:none}
+</style>

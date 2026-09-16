@@ -19,6 +19,8 @@ public interface SocialAccountRepository extends JpaRepository<SocialAccount, Lo
 
     boolean existsByUserAndProvider(User user, SocialProvider provider);
 
+    Optional<SocialAccount> findByUserAndProvider(User user, SocialProvider provider);
+
     List<SocialAccount> findByUser(User user);
 
     @Query("select account.provider from SocialAccount account where account.user.userId = :userId")

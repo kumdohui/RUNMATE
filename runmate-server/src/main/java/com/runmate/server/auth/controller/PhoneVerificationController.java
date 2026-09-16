@@ -28,7 +28,8 @@ public class PhoneVerificationController {
     ) {
         return phoneVerificationService.issue(
                 request.phoneNumber(),
-                Boolean.TRUE.equals(request.accountLinkingAllowed())
+                Boolean.TRUE.equals(request.accountLinkingAllowed()),
+                request.purpose()
         );
     }
 

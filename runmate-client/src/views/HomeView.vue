@@ -19,7 +19,7 @@ const courses = [
     <header class="home-header"><div class="home-nav">
       <RouterLink class="home-brand" to="/"><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink>
       <nav class="home-menu" aria-label="주요 메뉴"><a href="#courses">코스 탐색</a><a href="#community">러닝 피드</a></nav>
-      <nav v-if="authState.user" class="home-actions" aria-label="회원 메뉴"><span class="member-name">{{ authState.user.nickname }}님</span><button class="home-logout" type="button" @click="handleLogout">로그아웃</button></nav>
+      <nav v-if="authState.user" class="home-actions" aria-label="회원 메뉴"><RouterLink class="home-write" to="/posts/new">글쓰기</RouterLink><RouterLink class="member-name" to="/profile">{{ authState.user.nickname }}님</RouterLink><button class="home-logout" type="button" @click="handleLogout">로그아웃</button></nav>
       <nav v-else class="home-actions" aria-label="회원 메뉴"><RouterLink class="home-login" to="/login">로그인</RouterLink><RouterLink class="home-signup" to="/signup">시작하기 <span>↗</span></RouterLink></nav>
     </div></header>
     <p v-if="logoutMessage" class="home-alert">{{ logoutMessage }}</p>

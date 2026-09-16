@@ -224,7 +224,7 @@ async function completeSignup() {
           </div>
 
           <div v-if="phoneVerified" class="kakao-terms">
-            <label class="kakao-all-term"><input v-model="allTermsAgreed" type="checkbox" /> 필수 약관 전체 동의</label>
+            <label class="kakao-all-term"><input v-model="allTermsAgreed" type="checkbox" /> 필수 항목 전체 동의</label>
             <label><input v-model="form.serviceTerm" type="checkbox" /> <span>[필수] 서비스 이용약관 <button type="button" class="kakao-term-detail" @click="openTerms('service')">약관 내용 보기</button></span></label>
             <label><input v-model="form.privacyTerm" type="checkbox" /> <span>[필수] 개인정보 수집·이용 동의 <button type="button" class="kakao-term-detail" @click="openTerms('privacy')">약관 내용 보기</button></span></label>
             <label><input v-model="form.ageConfirmed" type="checkbox" /> <span>[필수] 본인은 만 14세 이상입니다</span></label>

@@ -20,6 +20,7 @@ import com.runmate.server.user.domain.SocialProvider;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.repository.SocialAccountRepository;
+import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +32,7 @@ public class KakaoLoginService {
     private static final String USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
 
     private final SocialAccountRepository socialAccountRepository;
+    private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Value("${kakao.client-id}")
     private String clientId;
@@ -128,9 +130,7 @@ public class KakaoLoginService {
                 user.getLoginId(),
                 user.getNickname(),
                 user.getRole().name(),
-                user.getProfileImageUrl() == null
-                        ? profile.profileImageUrl()
-                        : user.getProfileImageUrl()
+                profileImageUrlResolver.resolve(user, profile.profileImageUrl())
         );
         return KakaoLoginResult.authenticated(principal);
     }

@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.runmate.server.auth.exception.AuthException;
+import com.runmate.server.common.storage.ImageStorageException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -34,5 +35,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
+    }
+
+    @ExceptionHandler(ImageStorageException.class)
+    public ResponseEntity<ErrorResponse> handleImageStorageException(ImageStorageException exception) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(exception.getMessage()));
     }
 }

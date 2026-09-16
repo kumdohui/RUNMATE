@@ -26,7 +26,7 @@ public class EmailVerificationController {
     public EmailVerificationIssueResponse issue(
             @Valid @RequestBody EmailVerificationRequest request
     ) {
-        return emailVerificationService.issue(request.email());
+        return emailVerificationService.issue(request.email(), request.purpose());
     }
 
     @PostMapping("/{verificationId}/confirm")

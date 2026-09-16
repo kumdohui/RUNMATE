@@ -50,15 +50,16 @@ public class PhoneVerification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public static PhoneVerification createForSignup(
+    public static PhoneVerification create(
             String phoneNumber,
             String codeHash,
+            PhoneVerificationPurpose purpose,
             LocalDateTime expiresAt
     ) {
         PhoneVerification verification = new PhoneVerification();
         verification.phoneNumber = phoneNumber;
         verification.codeHash = codeHash;
-        verification.purpose = PhoneVerificationPurpose.SIGNUP;
+        verification.purpose = purpose;
         verification.expiresAt = expiresAt;
         return verification;
     }
@@ -80,6 +81,13 @@ public class PhoneVerification {
 
     public boolean isUsableForSignup(LocalDateTime now) {
         return purpose == PhoneVerificationPurpose.SIGNUP
+                && verifiedAt != null
+                && consumedAt == null
+                && verifiedAt.plusMinutes(30).isAfter(now);
+    }
+
+    public boolean isUsableForLoginIdRecovery(LocalDateTime now) {
+        return purpose == PhoneVerificationPurpose.FIND_LOGIN_ID
                 && verifiedAt != null
                 && consumedAt == null
                 && verifiedAt.plusMinutes(30).isAfter(now);

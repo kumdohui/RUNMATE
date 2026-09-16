@@ -22,6 +22,7 @@ import com.runmate.server.auth.dto.AuthDtos.LoginRequest;
 import com.runmate.server.auth.dto.AuthDtos.LoginResponse;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.auth.service.LoginService;
+import com.runmate.server.user.service.ProfileImageService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LoginController {
     private final LoginService loginService;
+    private final ProfileImageService profileImageService;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
     @PostMapping("/login")
@@ -53,7 +55,10 @@ public class LoginController {
                 || !(authentication.getPrincipal() instanceof RunmatePrincipal principal)) {
             return ResponseEntity.noContent().build();
         }
-        return ResponseEntity.ok(toResponse(principal));
+        RunmatePrincipal refreshedPrincipal = principal.withProfileImageUrl(
+                profileImageService.getViewUrl(principal.userId(), principal.profileImageUrl())
+        );
+        return ResponseEntity.ok(toResponse(refreshedPrincipal));
     }
 
     @GetMapping("/csrf")

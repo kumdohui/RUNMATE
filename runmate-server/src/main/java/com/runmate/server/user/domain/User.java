@@ -46,8 +46,8 @@ public class User {
     @Column(name = "profile_image_url", length = 1000)
     private String profileImageUrl;
 
-    @Column(name = "profile_image_stored_name", length = 255)
-    private String profileImageStoredName;
+    @Column(name = "profile_image_storage_key", length = 255)
+    private String profileImageStorageKey;
 
     @Column(name = "profile_image_content_type", length = 100)
     private String profileImageContentType;
@@ -142,6 +142,29 @@ public class User {
         this.nickname = nickname;
     }
 
+    public void changeBio(String bio) {
+        this.bio = bio;
+    }
+
+    public void changeProfileImage(
+            String imageUrl,
+            String storageKey,
+            String contentType,
+            long fileSize
+    ) {
+        this.profileImageUrl = imageUrl;
+        this.profileImageStorageKey = storageKey;
+        this.profileImageContentType = contentType;
+        this.profileImageFileSize = fileSize;
+    }
+
+    public void removeProfileImage() {
+        this.profileImageUrl = null;
+        this.profileImageStorageKey = null;
+        this.profileImageContentType = null;
+        this.profileImageFileSize = null;
+    }
+
     public boolean isLocked(LocalDateTime now) {
         return lockedUntil != null && lockedUntil.isAfter(now);
     }
@@ -157,5 +180,30 @@ public class User {
         loginFailCount = 0;
         lockedUntil = null;
         lastLoginAt = now;
+    }
+
+    public void resetPassword(String passwordHash, LocalDateTime changedAt) {
+        this.passwordHash = passwordHash;
+        this.passwordChangedAt = changedAt;
+        this.loginFailCount = 0;
+        this.lockedUntil = null;
+    }
+
+    public void anonymizeAndWithdraw(LocalDateTime withdrawnAt) {
+        this.loginId = null;
+        this.email = null;
+        this.passwordHash = null;
+        this.phoneNumber = null;
+        this.nickname = "탈퇴한 사용자_" + this.userId;
+        this.bio = null;
+        removeProfileImage();
+        this.status = UserStatus.DELETED;
+        this.deletedAt = withdrawnAt;
+        this.emailVerifiedAt = null;
+        this.phoneVerifiedAt = null;
+        this.lastLoginAt = null;
+        this.passwordChangedAt = null;
+        this.loginFailCount = 0;
+        this.lockedUntil = null;
     }
 }
