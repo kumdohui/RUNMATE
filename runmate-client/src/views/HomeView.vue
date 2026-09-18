@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { authState, logout } from '../auth'
 
 const logoutMessage = ref('')
@@ -7,11 +7,73 @@ async function handleLogout() {
   try { await logout() } catch (error) { logoutMessage.value = error.message }
 }
 
-const courses = [
-  { rank: '01', location: '서울 · 한강', title: '반포에서 여의도까지\n야경 러닝', distance: '8.4 km', time: '48분', saves: 128, tone: 'green' },
-  { rank: '02', location: '서울 · 남산', title: '도심의 초록을 지나는\n남산 순환 코스', distance: '6.1 km', time: '39분', saves: 104, tone: 'blue' },
-  { rank: '03', location: '경기 · 수원', title: '노을과 함께 달리는\n광교호수 한 바퀴', distance: '7.3 km', time: '44분', saves: 96, tone: 'orange' },
-]
+const memberCount = ref(0)
+const courses = ref([])
+const recentPosts = ref([])
+const currentPage = ref(0)
+const totalPages = ref(0)
+const feedSort = ref('latest')
+const homeMessage = ref('')
+const tones = ['green', 'blue', 'orange']
+
+function formatDuration(totalSeconds) {
+  if (!totalSeconds) return '-'
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return seconds ? `${minutes}분 ${String(seconds).padStart(2, '0')}초` : `${minutes}분`
+}
+
+function formatDistance(value) {
+  if (value == null) return null
+  return `${Number(Number(value).toFixed(3))} km`
+}
+
+function formatPace(distanceKm, durationSeconds) {
+  if (!distanceKm || !durationSeconds) return null
+  const secondsPerKm = Math.round(durationSeconds / distanceKm)
+  const minutes = Math.floor(secondsPerKm / 60)
+  const seconds = secondsPerKm % 60
+  return `${minutes}'${String(seconds).padStart(2, '0')}\" /km`
+}
+
+async function loadHomeSummary(page = 0) {
+  try {
+    const response = await fetch(`/api/home/summary?page=${page}&sort=${feedSort.value}`, { credentials: 'include' })
+    if (!response.ok) throw new Error('홈 정보를 불러오지 못했습니다.')
+    const data = await response.json()
+    memberCount.value = data.activeMemberCount ?? 0
+    currentPage.value = data.currentPage ?? 0
+    totalPages.value = data.totalPages ?? 0
+    courses.value = (data.popularCourses ?? []).map((course, index) => ({
+      ...course,
+      rank: String(index + 1).padStart(2, '0'),
+      tone: tones[index] ?? 'green',
+      locationLabel: [course.region, course.location].filter(Boolean).join(' · ') || '코스 정보',
+      distanceLabel: course.distanceKm ? `${Number(course.distanceKm).toFixed(1)} km` : '-',
+      timeLabel: formatDuration(course.durationSeconds),
+    }))
+    recentPosts.value = (data.recentPosts ?? []).map((post) => ({
+      ...post,
+      distanceLabel: formatDistance(post.distanceKm),
+      timeLabel: formatDuration(post.durationSeconds),
+      paceLabel: formatPace(post.distanceKm, post.durationSeconds),
+    }))
+  } catch (error) {
+    homeMessage.value = error.message
+  }
+}
+
+async function movePage(page) {
+  if (page < 0 || page >= totalPages.value || page === currentPage.value) return
+  await loadHomeSummary(page)
+  document.querySelector('#community')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+async function changeSort() {
+  await loadHomeSummary(0)
+}
+
+onMounted(loadHomeSummary)
 </script>
 
 <template>
@@ -31,7 +93,7 @@ const courses = [
           <h1>오늘의 한 걸음이<br /><em>내일의 기록</em>이 되도록.</h1>
           <p class="hero-description">달린 거리와 시간을 기록하고, 새로운 코스를 발견하세요.<br />혼자였던 러닝이 더 오래 이어지는 방법.</p>
           <div class="hero-buttons"><RouterLink class="hero-cta" to="/signup">RUNMATE 시작하기 <span>→</span></RouterLink><a class="hero-link" href="#courses">인기 코스 둘러보기</a></div>
-          <div class="hero-proof"><div class="avatar-stack"><i>민</i><i>서</i><i>준</i></div><p><strong>1,284명의 러너</strong>가<br />이번 주 함께 달리고 있어요</p></div>
+          <div class="hero-proof"><div class="avatar-stack"><i>민</i><i>서</i><i>준</i></div><p><strong>{{ memberCount.toLocaleString() }}명의 러너</strong>가<br />현재 RUNMATE와 함께하고 있어요</p></div>
         </div>
         <div class="run-visual">
           <div class="visual-top"><span>LIVE ACTIVITY</span><i></i><b>SEOUL · 7:18 PM</b></div>
@@ -42,18 +104,36 @@ const courses = [
       </section>
       <section id="courses" class="popular-section">
         <div class="section-heading">
-          <div><span class="section-kicker">CURATED FOR RUNNERS</span><h2>지금 가장 사랑받는 코스</h2><p>러너들이 직접 달리고 저장한 이번 달의 코스를 만나보세요.</p></div>
+          <div><span class="section-kicker">CURATED FOR RUNNERS</span><h2>지금 가장 사랑받는 코스</h2><p>좋아요와 댓글 반응이 가장 많은 코스를 만나보세요.</p></div>
           <a href="#courses" @click.prevent>모든 코스 보기 <span>→</span></a>
         </div>
         <div class="course-grid">
-          <article v-for="course in courses" :key="course.rank" class="course-card">
-            <div class="course-cover" :class="`course-cover--${course.tone}`"><span class="course-rank">{{ course.rank }}</span><span class="course-line"></span><i class="course-dot"></i><span class="course-save">♡ {{ course.saves }}</span></div>
-            <div class="course-body"><p class="course-location">{{ course.location }}</p><h3>{{ course.title }}</h3><div class="course-meta"><span><b>{{ course.distance }}</b> 거리</span><span><b>{{ course.time }}</b> 예상 시간</span><button aria-label="코스 열기">↗</button></div></div>
+          <article v-for="course in courses" :key="course.postId" class="course-card">
+            <div class="course-cover" :class="`course-cover--${course.tone}`"><span class="course-rank">{{ course.rank }}</span><span class="course-line"></span><i class="course-dot"></i><span class="course-save">♡ {{ course.likeCount }} · 댓글 {{ course.commentCount }}</span></div>
+            <div class="course-body"><p class="course-location">{{ course.locationLabel }}</p><h3>{{ course.title }}</h3><div class="course-meta"><span><b>{{ course.distanceLabel }}</b> 거리</span><span><b>{{ course.timeLabel }}</b> 소요 시간</span><RouterLink :to="`/posts/${course.postId}`" :aria-label="`${course.title} 열기`" style="margin-left:auto"><button type="button">↗</button></RouterLink></div></div>
           </article>
+          <p v-if="!courses.length && !homeMessage" class="popular-empty">좋아요와 댓글 반응이 쌓이면 인기 코스 TOP 3가 표시됩니다.</p>
         </div>
+        <p v-if="homeMessage" class="home-alert">{{ homeMessage }}</p>
       </section>
-      <section id="community" class="community-banner"><div><span>RUN TOGETHER</span><h2>달리는 즐거움은<br />나눌수록 커지니까.</h2></div><p>기록을 공유하고 서로의 달리기를 응원하세요.<br />RUNMATE에서 당신의 러닝 메이트를 만나보세요.</p><RouterLink to="/signup">커뮤니티 시작하기 →</RouterLink></section>
+      <section id="community" class="feed-section">
+        <div class="feed-heading"><div><span class="section-kicker">TODAY'S RUNNING FEED</span><h2>오늘의 러닝 피드</h2></div><div class="feed-tools"><label aria-label="게시글 정렬"><select v-model="feedSort" @change="changeSort"><option value="latest">최신순</option><option value="oldest">오래된순</option><option value="views">조회순</option><option value="likes">좋아요순</option></select></label></div></div>
+        <div class="feed-grid">
+          <RouterLink v-for="post in recentPosts" :key="post.postId" class="feed-card" :to="`/posts/${post.postId}`">
+            <div class="feed-image"><img v-if="post.imageUrl" :src="post.imageUrl" :alt="post.title" /><span>{{ post.categoryName }}</span></div>
+            <div class="feed-body"><h3>{{ post.title }}</h3><p>{{ post.summary }}</p><div class="feed-metrics"><b v-if="post.distanceLabel">{{ post.distanceLabel }}</b><b v-if="post.timeLabel">{{ post.timeLabel }}</b><b v-if="post.paceLabel">{{ post.paceLabel }}</b></div><small>{{ post.authorNickname }} · ♡ {{ post.likeCount }} · 댓글 {{ post.commentCount }}</small></div>
+          </RouterLink>
+        </div>
+        <nav v-if="totalPages > 1" class="feed-pagination" aria-label="게시글 페이지">
+          <button type="button" :disabled="currentPage === 0" @click="movePage(currentPage - 1)">이전</button>
+          <button v-for="page in totalPages" :key="page" type="button" :class="{ active: currentPage === page - 1 }" @click="movePage(page - 1)">{{ page }}</button>
+          <button type="button" :disabled="currentPage === totalPages - 1" @click="movePage(currentPage + 1)">다음</button>
+        </nav>
+      </section>
+      <section class="community-banner"><div><span>RUN TOGETHER</span><h2>달리는 즐거움은<br />나눌수록 커지니까.</h2></div><p>기록을 공유하고 서로의 달리기를 응원하세요.<br />RUNMATE에서 당신의 러닝 메이트를 만나보세요.</p><RouterLink to="/signup">커뮤니티 시작하기 →</RouterLink></section>
     </main>
     <footer class="home-footer"><div><RouterLink class="home-brand home-brand--footer" to="/"><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink><p>달리는 순간을 기록하고, 서로의 길을 나누는 러닝 커뮤니티</p></div><span>© 2026 RUNMATE</span></footer>
   </div>
 </template>
+
+<style scoped src="../home-feed.css"></style>

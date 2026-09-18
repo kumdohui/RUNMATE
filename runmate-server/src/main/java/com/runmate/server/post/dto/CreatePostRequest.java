@@ -10,6 +10,7 @@ import com.runmate.server.post.domain.RunningIntensity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -26,7 +27,8 @@ public record CreatePostRequest(
         PostStatus status
 ) {
     public record RunningRecordRequest(
-            @NotNull(message = "러닝 날짜를 입력해 주세요.") LocalDate runningDate,
+            @NotNull(message = "러닝 날짜를 입력해 주세요.")
+            @PastOrPresent(message = "러닝 날짜는 오늘 이후일 수 없습니다.") LocalDate runningDate,
             @NotNull(message = "러닝 거리를 입력해 주세요.")
             @DecimalMin(value = "0.001", message = "러닝 거리는 0.001km 이상이어야 합니다.")
             @DecimalMax(value = "9999.999", message = "러닝 거리가 허용 범위를 초과했습니다.") BigDecimal distanceKm,

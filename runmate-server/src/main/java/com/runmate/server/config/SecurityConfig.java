@@ -50,7 +50,8 @@ public class SecurityConfig {
                                 "/api/auth/naver",
                                 "/api/auth/naver/callback",
                                 "/api/auth/naver/pending",
-                                "/api/auth/naver/signup"
+                                "/api/auth/naver/signup",
+                                "/api/home/summary"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
