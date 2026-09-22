@@ -13,17 +13,17 @@ import com.runmate.server.auth.domain.PhoneVerificationPurpose;
 import com.runmate.server.auth.dto.KakaoPendingProfile;
 import com.runmate.server.auth.dto.AuthDtos.KakaoSignupRequest;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.PhoneVerificationRepository;
+import com.runmate.server.auth.mapper.PhoneVerificationMapper;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.terms.domain.Term;
 import com.runmate.server.terms.domain.UserTermAgreement;
-import com.runmate.server.terms.repository.TermRepository;
-import com.runmate.server.terms.repository.UserTermAgreementRepository;
+import com.runmate.server.terms.mapper.TermMapper;
+import com.runmate.server.terms.mapper.UserTermAgreementMapper;
 import com.runmate.server.user.domain.SocialAccount;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
-import com.runmate.server.user.repository.SocialAccountRepository;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.SocialAccountMapper;
+import com.runmate.server.user.mapper.UserMapper;
 import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
@@ -32,11 +32,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class KakaoSignupService {
 
-    private final UserRepository userRepository;
-    private final SocialAccountRepository socialAccountRepository;
-    private final PhoneVerificationRepository phoneVerificationRepository;
-    private final TermRepository termRepository;
-    private final UserTermAgreementRepository agreementRepository;
+    private final UserMapper userMapper;
+    private final SocialAccountMapper socialAccountMapper;
+    private final PhoneVerificationMapper phoneVerificationMapper;
+    private final TermMapper termMapper;
+    private final UserTermAgreementMapper agreementMapper;
     private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Transactional
@@ -47,12 +47,12 @@ public class KakaoSignupService {
             String userAgent
     ) {
         LocalDateTime now = LocalDateTime.now();
-        PhoneVerification phoneVerification = phoneVerificationRepository
+        PhoneVerification phoneVerification = phoneVerificationMapper
                 .findById(request.phoneVerificationId())
                 .orElseThrow(() -> new AuthException("휴대전화 인증 정보를 찾을 수 없습니다."));
 
         validatePhoneVerification(phoneVerification, now);
-        if (socialAccountRepository.findByProviderAndProviderUserId(
+        if (socialAccountMapper.findByProviderAndProviderUserId(
                 com.runmate.server.user.domain.SocialProvider.KAKAO,
                 profile.providerUserId()
         ).isPresent()) {
@@ -60,17 +60,17 @@ public class KakaoSignupService {
         }
 
         List<Term> terms = validateTerms(request.termIds(), now);
-        User user = userRepository
+        User user = userMapper
                 .findByPhoneNumber(phoneVerification.getPhoneNumber())
                 .map(this::linkableExistingUser)
                 .orElseGet(() -> createSocialUser(request, phoneVerification));
 
-        socialAccountRepository.save(SocialAccount.createKakao(
+        socialAccountMapper.save(SocialAccount.createKakao(
                 user,
                 profile.providerUserId(),
                 now
         ));
-        agreementRepository.saveAll(terms.stream()
+        agreementMapper.saveAll(terms.stream()
                 .map(term -> UserTermAgreement.createAgreement(user, term, ipAddress, userAgent))
                 .toList());
         phoneVerification.consume(now);
@@ -93,7 +93,7 @@ public class KakaoSignupService {
         if (user.getStatus() == UserStatus.DELETED) {
             throw new AuthException("탈퇴한 계정에는 카카오 계정을 연결할 수 없습니다.");
         }
-        if (socialAccountRepository.existsByUserAndProvider(
+        if (socialAccountMapper.existsByUserAndProvider(
                 user,
                 com.runmate.server.user.domain.SocialProvider.KAKAO
         )) {
@@ -111,10 +111,10 @@ public class KakaoSignupService {
         if (nicknameLength < 2 || nicknameLength > 20) {
             throw new AuthException("닉네임은 2~20자로 입력해 주세요.");
         }
-        if (userRepository.existsByNickname(nickname)) {
+        if (userMapper.existsByNickname(nickname)) {
             throw new AuthException("이미 사용 중인 닉네임입니다.");
         }
-        return userRepository.save(User.createSocial(
+        return userMapper.save(User.createSocial(
                 phoneVerification.getPhoneNumber(),
                 nickname,
                 phoneVerification.getVerifiedAt()
@@ -138,11 +138,11 @@ public class KakaoSignupService {
 
     private List<Term> validateTerms(List<Long> termIds, LocalDateTime now) {
         Set<Long> requestedIds = Set.copyOf(termIds);
-        List<Term> terms = termRepository.findByTermIdIn(requestedIds.stream().toList());
+        List<Term> terms = termMapper.findByTermIdIn(requestedIds.stream().toList());
         if (terms.size() != requestedIds.size() || terms.stream().anyMatch(term -> !term.isEffectiveAt(now))) {
             throw new AuthException("현재 동의할 수 없는 약관이 포함되어 있습니다.");
         }
-        Set<Long> requiredIds = termRepository.findCurrentRequiredTerms(now).stream()
+        Set<Long> requiredIds = termMapper.findCurrentRequiredTerms(now).stream()
                 .map(Term::getTermId)
                 .collect(Collectors.toSet());
         if (!requestedIds.containsAll(requiredIds)) {
@@ -151,3 +151,5 @@ public class KakaoSignupService {
         return terms;
     }
 }
+
+

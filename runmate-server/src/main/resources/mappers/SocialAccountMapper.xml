@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.user.mapper.SocialAccountMapper">
+    <resultMap id="accountMap" type="com.runmate.server.user.domain.SocialAccount">
+        <id property="socialAccountId" column="social_account_id" />
+        <result property="provider" column="provider" />
+        <result property="providerUserId" column="provider_user_id" />
+        <result property="providerEmail" column="provider_email" />
+        <result property="connectedAt" column="connected_at" />
+        <result property="lastLoginAt" column="social_last_login_at" />
+        <association property="user" javaType="com.runmate.server.user.domain.User">
+            <id property="userId" column="user_id" />
+            <result property="loginId" column="login_id" />
+            <result property="email" column="email" />
+            <result property="passwordHash" column="password_hash" />
+            <result property="phoneNumber" column="phone_number" />
+            <result property="nickname" column="nickname" />
+            <result property="role" column="role" />
+            <result property="status" column="status" />
+        </association>
+    </resultMap>
+    <sql id="selectAccount">
+        SELECT sa.social_account_id, sa.provider, sa.provider_user_id,
+               sa.provider_email, sa.connected_at,
+               sa.last_login_at AS social_last_login_at,
+               u.user_id, u.login_id, u.email, u.password_hash,
+               u.phone_number, u.nickname, u.role, u.status
+        FROM social_accounts sa JOIN users u ON u.user_id=sa.user_id
+    </sql>
+    <select id="findByProviderAndProviderUserId" resultMap="accountMap">
+        <include refid="selectAccount" /> WHERE sa.provider=#{provider} AND sa.provider_user_id=#{providerUserId}
+    </select>
+    <select id="existsByUserAndProvider" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM social_accounts WHERE user_id=#{user.userId} AND provider=#{provider})
+    </select>
+    <select id="findByUserAndProvider" resultMap="accountMap">
+        <include refid="selectAccount" /> WHERE sa.user_id=#{user.userId} AND sa.provider=#{provider}
+    </select>
+    <select id="findByUser" resultMap="accountMap">
+        <include refid="selectAccount" /> WHERE sa.user_id=#{userId}
+    </select>
+    <select id="findProvidersByUserId" resultType="com.runmate.server.user.domain.SocialProvider">
+        SELECT provider FROM social_accounts WHERE user_id=#{userId}
+    </select>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="socialAccountId">
+        INSERT INTO social_accounts (user_id, provider, provider_user_id, provider_email, connected_at, last_login_at)
+        VALUES (#{user.userId}, #{provider}, #{providerUserId}, #{providerEmail}, NOW(), #{lastLoginAt})
+    </insert>
+    <update id="update">UPDATE social_accounts SET last_login_at=#{lastLoginAt} WHERE social_account_id=#{socialAccountId}</update>
+    <delete id="deleteById">DELETE FROM social_accounts WHERE social_account_id=#{socialAccountId}</delete>
+    <delete id="deleteByUserId">DELETE FROM social_accounts WHERE user_id=#{userId}</delete>
+</mapper>
+
+

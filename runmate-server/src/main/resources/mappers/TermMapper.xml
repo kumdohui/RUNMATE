@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.terms.mapper.TermMapper">
+    <sql id="columns">term_id, term_code, version, title, content_url, content_hash, is_required AS required, effective_at, expired_at, created_at</sql>
+    <select id="findByTermIdIn" resultType="com.runmate.server.terms.domain.Term">
+        SELECT <include refid="columns" /> FROM terms WHERE term_id IN
+        <foreach collection="termIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <select id="findCurrentRequiredTerms" resultType="com.runmate.server.terms.domain.Term">
+        SELECT <include refid="columns" /> FROM terms
+        WHERE is_required=TRUE AND effective_at &lt;= #{now}
+          AND (expired_at IS NULL OR expired_at &gt; #{now})
+    </select>
+</mapper>
+
+

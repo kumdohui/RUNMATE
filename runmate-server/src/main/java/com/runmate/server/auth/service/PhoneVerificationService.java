@@ -15,10 +15,10 @@ import com.runmate.server.auth.domain.PhoneVerificationPurpose;
 import com.runmate.server.auth.dto.AuthDtos.PhoneVerificationConfirmResponse;
 import com.runmate.server.auth.dto.AuthDtos.PhoneVerificationIssueResponse;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.PhoneVerificationRepository;
+import com.runmate.server.auth.mapper.PhoneVerificationMapper;
 import com.runmate.server.user.domain.User;
-import com.runmate.server.user.repository.SocialAccountRepository;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.SocialAccountMapper;
+import com.runmate.server.user.mapper.UserMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,10 +32,10 @@ public class PhoneVerificationService {
     private static final int DAILY_ISSUE_LIMIT = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final PhoneVerificationRepository phoneVerificationRepository;
+    private final PhoneVerificationMapper phoneVerificationMapper;
     private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
-    private final SocialAccountRepository socialAccountRepository;
+    private final UserMapper userMapper;
+    private final SocialAccountMapper socialAccountMapper;
 
     @Value("${verification.development-mode:false}")
     private boolean developmentMode;
@@ -71,7 +71,7 @@ public class PhoneVerificationService {
                 purpose,
                 now.plusSeconds(EXPIRES_IN_SECONDS)
         );
-        PhoneVerification saved = phoneVerificationRepository.save(verification);
+        PhoneVerification saved = phoneVerificationMapper.save(verification);
 
         return new PhoneVerificationIssueResponse(
                 saved.getVerificationId(),
@@ -88,7 +88,7 @@ public class PhoneVerificationService {
             return;
         }
 
-        userRepository.findByPhoneNumber(phoneNumber)
+        userMapper.findByPhoneNumber(phoneNumber)
                 .filter(user -> user.getLoginId() != null
                         && user.getPasswordHash() != null)
                 .ifPresent(user -> {
@@ -103,7 +103,7 @@ public class PhoneVerificationService {
             PhoneVerificationPurpose purpose,
             LocalDateTime now
     ) {
-        phoneVerificationRepository
+        phoneVerificationMapper
                 .findTopByPhoneNumberAndPurposeOrderByCreatedAtDesc(
                         phoneNumber,
                         purpose
@@ -122,7 +122,7 @@ public class PhoneVerificationService {
                     }
                 });
 
-        long hourlyCount = phoneVerificationRepository
+        long hourlyCount = phoneVerificationMapper
                 .countByPhoneNumberAndPurposeAndCreatedAtGreaterThanEqual(
                         phoneNumber,
                         purpose,
@@ -134,7 +134,7 @@ public class PhoneVerificationService {
             );
         }
 
-        long dailyCount = phoneVerificationRepository
+        long dailyCount = phoneVerificationMapper
                 .countByPhoneNumberAndPurposeAndCreatedAtGreaterThanEqual(
                         phoneNumber,
                         purpose,
@@ -149,7 +149,7 @@ public class PhoneVerificationService {
 
     @Transactional(noRollbackFor = AuthException.class)
     public PhoneVerificationConfirmResponse confirm(Long verificationId, String code) {
-        PhoneVerification verification = phoneVerificationRepository.findById(verificationId)
+        PhoneVerification verification = phoneVerificationMapper.findById(verificationId)
                 .orElseThrow(() -> new AuthException("휴대전화 인증 정보를 찾을 수 없습니다."));
 
         LocalDateTime now = LocalDateTime.now();
@@ -177,7 +177,7 @@ public class PhoneVerificationService {
     private PhoneVerificationConfirmResponse accountAwareResponse(
             PhoneVerification verification
     ) {
-        User user = userRepository.findByPhoneNumber(verification.getPhoneNumber())
+        User user = userMapper.findByPhoneNumber(verification.getPhoneNumber())
                 .orElse(null);
         if (user == null) {
             return new PhoneVerificationConfirmResponse(
@@ -185,7 +185,7 @@ public class PhoneVerificationService {
             );
         }
 
-        java.util.List<String> providers = socialAccountRepository.findProvidersByUserId(user.getUserId())
+        java.util.List<String> providers = socialAccountMapper.findProvidersByUserId(user.getUserId())
                 .stream()
                 .map(Enum::name)
                 .toList();
@@ -201,3 +201,5 @@ public class PhoneVerificationService {
         );
     }
 }
+
+

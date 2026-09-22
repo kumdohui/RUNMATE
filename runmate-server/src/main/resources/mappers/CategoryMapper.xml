@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.post.mapper.CategoryMapper">
+    <sql id="columns">category_id, name, display_order, is_active AS active</sql>
+    <select id="findById" resultType="com.runmate.server.post.domain.Category">
+        SELECT <include refid="columns" /> FROM categories WHERE category_id = #{categoryId}
+    </select>
+    <select id="findByActiveTrueOrderByDisplayOrderAscCategoryIdAsc" resultType="com.runmate.server.post.domain.Category">
+        SELECT <include refid="columns" /> FROM categories
+        WHERE is_active = TRUE ORDER BY display_order, category_id
+    </select>
+</mapper>
+
+

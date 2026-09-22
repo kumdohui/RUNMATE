@@ -1,0 +1,3 @@
+<template>
+  <AccountView />
+</template>

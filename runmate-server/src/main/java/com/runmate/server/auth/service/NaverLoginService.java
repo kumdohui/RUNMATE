@@ -18,7 +18,7 @@ import com.runmate.server.user.domain.SocialAccount;
 import com.runmate.server.user.domain.SocialProvider;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
-import com.runmate.server.user.repository.SocialAccountRepository;
+import com.runmate.server.user.mapper.SocialAccountMapper;
 import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class NaverLoginService {
     private static final String TOKEN_URL = "https://nid.naver.com/oauth2.0/token";
     private static final String USER_INFO_URL = "https://openapi.naver.com/v1/nid/me";
 
-    private final SocialAccountRepository socialAccountRepository;
+    private final SocialAccountMapper socialAccountMapper;
     private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Value("${naver.client-id}")
@@ -45,7 +45,7 @@ public class NaverLoginService {
         try {
             String accessToken = requestAccessToken(authorizationCode, state);
             NaverPendingProfile profile = requestProfile(accessToken);
-            return socialAccountRepository
+            return socialAccountMapper
                     .findByProviderAndProviderUserId(SocialProvider.NAVER, profile.providerUserId())
                     .map(account -> loginExistingUser(account, profile))
                     .orElseGet(() -> NaverLoginResult.signupRequired(profile));
@@ -120,3 +120,5 @@ public class NaverLoginService {
         }
     }
 }
+
+

@@ -10,22 +10,22 @@ import com.runmate.server.auth.domain.PhoneVerification;
 import com.runmate.server.auth.dto.AuthDtos.EmailVerificationIssueResponse;
 import com.runmate.server.auth.dto.AuthDtos.PasswordRecoveryResponse;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.PhoneVerificationRepository;
+import com.runmate.server.auth.mapper.PhoneVerificationMapper;
 import com.runmate.server.user.domain.User;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.UserMapper;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class PasswordRecoveryService {
-    private final UserRepository userRepository;
-    private final PhoneVerificationRepository phoneVerificationRepository;
+    private final UserMapper userMapper;
+    private final PhoneVerificationMapper phoneVerificationMapper;
     private final EmailVerificationService emailVerificationService;
 
     @Transactional
     public PasswordRecoveryResponse startByLoginId(String rawLoginId) {
-        User user = userRepository.findByLoginId(rawLoginId.trim())
+        User user = userMapper.findByLoginId(rawLoginId.trim())
                 .filter(found -> found.getPasswordHash() != null && found.getEmail() != null)
                 .orElseThrow(() -> new AuthException("입력한 아이디로 일반 로그인 계정을 찾을 수 없습니다."));
         return issueFor(user);
@@ -34,12 +34,12 @@ public class PasswordRecoveryService {
     @Transactional
     public PasswordRecoveryResponse startFromPhoneVerification(Long phoneVerificationId) {
         LocalDateTime now = LocalDateTime.now();
-        PhoneVerification verification = phoneVerificationRepository.findById(phoneVerificationId)
+        PhoneVerification verification = phoneVerificationMapper.findById(phoneVerificationId)
                 .orElseThrow(() -> new AuthException("휴대전화 인증 정보를 찾을 수 없습니다."));
         if (!verification.isUsableForLoginIdRecovery(now)) {
             throw new AuthException("휴대전화 인증이 만료되었거나 이미 사용되었습니다.");
         }
-        User user = userRepository.findByPhoneNumber(verification.getPhoneNumber())
+        User user = userMapper.findByPhoneNumber(verification.getPhoneNumber())
                 .filter(found -> found.getPasswordHash() != null && found.getEmail() != null)
                 .orElseThrow(() -> new AuthException("비밀번호를 재설정할 일반 로그인 계정이 없습니다."));
         verification.consume(now);
@@ -63,3 +63,5 @@ public class PasswordRecoveryService {
                 + "@" + parts[1];
     }
 }
+
+

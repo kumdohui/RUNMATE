@@ -14,9 +14,9 @@ const defaultImages = {
   '조깅 팁': defaultTip,
   '질문과 답변': defaultQuestion,
   '러닝 모임': defaultGroup,
-  '자유게시판': defaultCommunity,
+  자유게시판: defaultCommunity,
 }
 
-export function getDefaultPostImage(categoryName) {
+export const getDefaultPostImage = (categoryName) => {
   return defaultImages[categoryName] ?? defaultCommunity
 }

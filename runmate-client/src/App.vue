@@ -6,5 +6,5 @@ onMounted(loadSession)
 </script>
 
 <template>
-  <RouterView />
+  <NuxtPage />
 </template>

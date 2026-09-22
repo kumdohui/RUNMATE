@@ -17,39 +17,39 @@ import com.runmate.server.auth.domain.PhoneVerificationPurpose;
 import com.runmate.server.auth.dto.AuthDtos.SignupRequest;
 import com.runmate.server.auth.dto.AuthDtos.SignupResponse;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.EmailVerificationRepository;
-import com.runmate.server.auth.repository.PhoneVerificationRepository;
+import com.runmate.server.auth.mapper.EmailVerificationMapper;
+import com.runmate.server.auth.mapper.PhoneVerificationMapper;
 import com.runmate.server.terms.domain.Term;
 import com.runmate.server.terms.domain.UserTermAgreement;
-import com.runmate.server.terms.repository.TermRepository;
-import com.runmate.server.terms.repository.UserTermAgreementRepository;
+import com.runmate.server.terms.mapper.TermMapper;
+import com.runmate.server.terms.mapper.UserTermAgreementMapper;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.UserMapper;
 
 @Service
 public class SignupService {
 
-    private final UserRepository userRepository;
-    private final EmailVerificationRepository emailVerificationRepository;
-    private final PhoneVerificationRepository phoneVerificationRepository;
-    private final TermRepository termRepository;
-    private final UserTermAgreementRepository userTermAgreementRepository;
+    private final UserMapper userMapper;
+    private final EmailVerificationMapper emailVerificationMapper;
+    private final PhoneVerificationMapper phoneVerificationMapper;
+    private final TermMapper termMapper;
+    private final UserTermAgreementMapper userTermAgreementMapper;
     private final PasswordEncoder passwordEncoder;
 
     public SignupService(
-            UserRepository userRepository,
-            EmailVerificationRepository emailVerificationRepository,
-            PhoneVerificationRepository phoneVerificationRepository,
-            TermRepository termRepository,
-            UserTermAgreementRepository userTermAgreementRepository,
+            UserMapper userMapper,
+            EmailVerificationMapper emailVerificationMapper,
+            PhoneVerificationMapper phoneVerificationMapper,
+            TermMapper termMapper,
+            UserTermAgreementMapper userTermAgreementMapper,
             PasswordEncoder passwordEncoder
     ) {
-        this.userRepository = userRepository;
-        this.emailVerificationRepository = emailVerificationRepository;
-        this.phoneVerificationRepository = phoneVerificationRepository;
-        this.termRepository = termRepository;
-        this.userTermAgreementRepository = userTermAgreementRepository;
+        this.userMapper = userMapper;
+        this.emailVerificationMapper = emailVerificationMapper;
+        this.phoneVerificationMapper = phoneVerificationMapper;
+        this.termMapper = termMapper;
+        this.userTermAgreementMapper = userTermAgreementMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -61,7 +61,7 @@ public class SignupService {
     ) {
         LocalDateTime now = LocalDateTime.now();
 
-        EmailVerification emailVerification = emailVerificationRepository
+        EmailVerification emailVerification = emailVerificationMapper
                 .findById(request.emailVerificationId())
                 .orElseThrow(() -> new AuthException(
                         "요청한 이메일 인증 정보를 확인할 수 없습니다."
@@ -69,7 +69,7 @@ public class SignupService {
 
         validateEmailVerification(emailVerification, now);
 
-        PhoneVerification phoneVerification = phoneVerificationRepository
+        PhoneVerification phoneVerification = phoneVerificationMapper
                 .findById(request.phoneVerificationId())
                 .orElseThrow(() -> new AuthException(
                         "요청한 휴대전화 인증 정보를 확인할 수 없습니다."
@@ -88,7 +88,7 @@ public class SignupService {
                 request.password()
         );
 
-        Optional<User> existingUser = userRepository
+        Optional<User> existingUser = userMapper
                 .findByPhoneNumber(phoneVerification.getPhoneNumber());
         User savedUser = existingUser
                 .map(user -> addLocalLogin(
@@ -113,7 +113,7 @@ public class SignupService {
                 ))
                 .toList();
 
-        userTermAgreementRepository.saveAll(agreements);
+        userTermAgreementMapper.saveAll(agreements);
 
         emailVerification.consume(now);
         phoneVerification.consume(now);
@@ -180,12 +180,12 @@ public class SignupService {
     }
 
     private void validateUniqueLocalCredentials(String loginId, String email) {
-        if (userRepository.existsByLoginId(loginId)) {
+        if (userMapper.existsByLoginId(loginId)) {
             throw new AuthException(
                     "이미 사용 중인 아이디입니다."
             );
         }
-        if (userRepository.existsByEmail(email)) {
+        if (userMapper.existsByEmail(email)) {
             throw new AuthException(
                     "이미 가입된 이메일입니다."
             );
@@ -214,7 +214,7 @@ public class SignupService {
 
         String requestedNickname = request.nickname().trim();
         if (!requestedNickname.equals(user.getNickname())
-                && userRepository.existsByNickname(requestedNickname)) {
+                && userMapper.existsByNickname(requestedNickname)) {
             throw new AuthException("이미 사용 중인 닉네임입니다.");
         }
 
@@ -234,7 +234,7 @@ public class SignupService {
             EmailVerification emailVerification,
             PhoneVerification phoneVerification
     ) {
-        if (userRepository.existsByNickname(request.nickname())) {
+        if (userMapper.existsByNickname(request.nickname())) {
             throw new AuthException("이미 사용 중인 닉네임입니다.");
         }
         User user = User.create(
@@ -246,7 +246,7 @@ public class SignupService {
                 emailVerification.getVerifiedAt(),
                 phoneVerification.getVerifiedAt()
         );
-        return userRepository.save(user);
+        return userMapper.save(user);
     }
 
     private List<Term> validateTerms(
@@ -255,7 +255,7 @@ public class SignupService {
     ) {
         Set<Long> requestedTermIds = Set.copyOf(termIds);
 
-        List<Term> agreedTerms = termRepository.findByTermIdIn(
+        List<Term> agreedTerms = termMapper.findByTermIdIn(
                 requestedTermIds.stream().toList()
         );
 
@@ -274,7 +274,7 @@ public class SignupService {
             );
         }
 
-        Set<Long> requiredTermIds = termRepository
+        Set<Long> requiredTermIds = termMapper
                 .findCurrentRequiredTerms(now)
                 .stream()
                 .map(Term::getTermId)
@@ -289,3 +289,5 @@ public class SignupService {
         return agreedTerms;
     }
 }
+
+

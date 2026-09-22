@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.terms.mapper.UserTermAgreementMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="agreementId">
+        INSERT INTO user_term_agreements (user_id, term_id, agreed, ip_address, user_agent, action_at)
+        VALUES (#{user.userId}, #{term.termId}, #{agreed}, #{ipAddress}, #{userAgent}, NOW())
+    </insert>
+</mapper>
+
+

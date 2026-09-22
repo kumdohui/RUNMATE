@@ -9,33 +9,33 @@ import org.springframework.transaction.annotation.Transactional;
 import com.runmate.server.auth.domain.PhoneVerification;
 import com.runmate.server.auth.dto.AuthDtos.LoginIdRecoveryResponse;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.PhoneVerificationRepository;
+import com.runmate.server.auth.mapper.PhoneVerificationMapper;
 import com.runmate.server.user.domain.User;
-import com.runmate.server.user.repository.SocialAccountRepository;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.SocialAccountMapper;
+import com.runmate.server.user.mapper.UserMapper;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class LoginIdRecoveryService {
-    private final PhoneVerificationRepository phoneVerificationRepository;
-    private final UserRepository userRepository;
-    private final SocialAccountRepository socialAccountRepository;
+    private final PhoneVerificationMapper phoneVerificationMapper;
+    private final UserMapper userMapper;
+    private final SocialAccountMapper socialAccountMapper;
 
     @Transactional
     public LoginIdRecoveryResponse recover(Long phoneVerificationId) {
         LocalDateTime now = LocalDateTime.now();
-        PhoneVerification verification = phoneVerificationRepository.findById(phoneVerificationId)
+        PhoneVerification verification = phoneVerificationMapper.findById(phoneVerificationId)
                 .orElseThrow(() -> new AuthException("휴대전화 인증 정보를 찾을 수 없습니다."));
         if (!verification.isUsableForLoginIdRecovery(now)) {
             throw new AuthException("휴대전화 인증이 만료되었거나 이미 사용되었습니다.");
         }
-        User user = userRepository.findByPhoneNumber(verification.getPhoneNumber()).orElse(null);
+        User user = userMapper.findByPhoneNumber(verification.getPhoneNumber()).orElse(null);
         if (user == null) {
             return new LoginIdRecoveryResponse(false, null, null, List.of());
         }
-        List<String> providers = socialAccountRepository.findProvidersByUserId(user.getUserId())
+        List<String> providers = socialAccountMapper.findProvidersByUserId(user.getUserId())
                 .stream().map(Enum::name).toList();
         return new LoginIdRecoveryResponse(
                 true,
@@ -62,3 +62,5 @@ public class LoginIdRecoveryService {
                 + "@" + parts[1];
     }
 }
+
+

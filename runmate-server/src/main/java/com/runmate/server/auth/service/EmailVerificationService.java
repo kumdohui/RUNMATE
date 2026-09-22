@@ -19,8 +19,8 @@ import com.runmate.server.auth.domain.EmailVerificationPurpose;
 import com.runmate.server.auth.dto.AuthDtos.EmailVerificationConfirmResponse;
 import com.runmate.server.auth.dto.AuthDtos.EmailVerificationIssueResponse;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.EmailVerificationRepository;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.auth.mapper.EmailVerificationMapper;
+import com.runmate.server.user.mapper.UserMapper;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -38,8 +38,8 @@ public class EmailVerificationService {
     private static final int DAILY_ISSUE_LIMIT = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final EmailVerificationRepository emailVerificationRepository;
-    private final UserRepository userRepository;
+    private final EmailVerificationMapper emailVerificationMapper;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
 
@@ -59,11 +59,11 @@ public class EmailVerificationService {
                 && purpose != EmailVerificationPurpose.RESET_PASSWORD) {
             throw new AuthException("지원하지 않는 이메일 인증 목적입니다.");
         }
-        if (purpose == EmailVerificationPurpose.SIGNUP && userRepository.existsByEmail(email)) {
+        if (purpose == EmailVerificationPurpose.SIGNUP && userMapper.existsByEmail(email)) {
             throw new AuthException("이미 사용 중인 이메일입니다.");
         }
         boolean passwordResetRecipientExists = purpose != EmailVerificationPurpose.RESET_PASSWORD
-                || userRepository.findByEmail(email)
+                || userMapper.findByEmail(email)
                         .filter(user -> user.getPasswordHash() != null)
                         .isPresent();
 
@@ -77,7 +77,7 @@ public class EmailVerificationService {
                 purpose,
                 now.plusSeconds(EXPIRES_IN_SECONDS)
         );
-        EmailVerification saved = emailVerificationRepository.save(verification);
+        EmailVerification saved = emailVerificationMapper.save(verification);
         if (passwordResetRecipientExists) {
             sendCode(email, code, purpose);
         }
@@ -150,7 +150,7 @@ public class EmailVerificationService {
             EmailVerificationPurpose purpose,
             LocalDateTime now
     ) {
-        emailVerificationRepository
+        emailVerificationMapper
                 .findTopByEmailAndPurposeOrderByCreatedAtDesc(
                         email,
                         purpose
@@ -169,7 +169,7 @@ public class EmailVerificationService {
                     }
                 });
 
-        long hourlyCount = emailVerificationRepository
+        long hourlyCount = emailVerificationMapper
                 .countByEmailAndPurposeAndCreatedAtGreaterThanEqual(
                         email,
                         purpose,
@@ -179,7 +179,7 @@ public class EmailVerificationService {
             throw new AuthException("인증번호는 최근 1시간 동안 최대 5회까지 받을 수 있습니다.");
         }
 
-        long dailyCount = emailVerificationRepository
+        long dailyCount = emailVerificationMapper
                 .countByEmailAndPurposeAndCreatedAtGreaterThanEqual(
                         email,
                         purpose,
@@ -192,7 +192,7 @@ public class EmailVerificationService {
 
     @Transactional(noRollbackFor = AuthException.class)
     public EmailVerificationConfirmResponse confirm(Long verificationId, String code) {
-        EmailVerification verification = emailVerificationRepository.findById(verificationId)
+        EmailVerification verification = emailVerificationMapper.findById(verificationId)
                 .orElseThrow(() -> new AuthException("이메일 인증 정보를 찾을 수 없습니다."));
 
         LocalDateTime now = LocalDateTime.now();
@@ -217,3 +217,5 @@ public class EmailVerificationService {
         return new EmailVerificationConfirmResponse(verificationId, true);
     }
 }
+
+

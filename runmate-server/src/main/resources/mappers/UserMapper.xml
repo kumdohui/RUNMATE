@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.user.mapper.UserMapper">
+    <sql id="columns">
+        user_id, login_id, email, password_hash, phone_number, nickname,
+        profile_image_url, profile_image_storage_key, profile_image_content_type,
+        profile_image_file_size, bio, role, status, email_verified_at,
+        phone_verified_at, last_login_at, login_fail_count, locked_until,
+        password_changed_at, created_at, updated_at, deleted_at
+    </sql>
+
+    <select id="findById" resultType="com.runmate.server.user.domain.User">
+        SELECT <include refid="columns" /> FROM users WHERE user_id = #{userId}
+    </select>
+    <select id="findByLoginId" resultType="com.runmate.server.user.domain.User">
+        SELECT <include refid="columns" /> FROM users WHERE login_id = #{loginId}
+    </select>
+    <select id="findByPhoneNumber" resultType="com.runmate.server.user.domain.User">
+        SELECT <include refid="columns" /> FROM users WHERE phone_number = #{phoneNumber}
+    </select>
+    <select id="findByNickname" resultType="com.runmate.server.user.domain.User">
+        SELECT <include refid="columns" /> FROM users WHERE nickname = #{nickname}
+    </select>
+    <select id="findByEmail" resultType="com.runmate.server.user.domain.User">
+        SELECT <include refid="columns" /> FROM users WHERE email = #{email}
+    </select>
+    <select id="existsByLoginId" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM users WHERE login_id = #{loginId})
+    </select>
+    <select id="existsByEmail" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM users WHERE email = #{email})
+    </select>
+    <select id="existsByPhoneNumber" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM users WHERE phone_number = #{phoneNumber})
+    </select>
+    <select id="existsByNickname" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM users WHERE nickname = #{nickname})
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO users (
+            login_id, email, password_hash, phone_number, nickname,
+            profile_image_url, profile_image_storage_key, profile_image_content_type,
+            profile_image_file_size, bio, role, status, email_verified_at,
+            phone_verified_at, last_login_at, login_fail_count, locked_until,
+            password_changed_at, created_at, updated_at
+        ) VALUES (
+            #{loginId}, #{email}, #{passwordHash}, #{phoneNumber}, #{nickname},
+            #{profileImageUrl}, #{profileImageStorageKey}, #{profileImageContentType},
+            #{profileImageFileSize}, #{bio}, #{role}, #{status}, #{emailVerifiedAt},
+            #{phoneVerifiedAt}, #{lastLoginAt}, #{loginFailCount}, #{lockedUntil},
+            #{passwordChangedAt}, NOW(), NOW()
+        )
+    </insert>
+    <update id="update">
+        UPDATE users
+           SET login_id = #{loginId}, email = #{email}, password_hash = #{passwordHash},
+               phone_number = #{phoneNumber}, nickname = #{nickname},
+               profile_image_url = #{profileImageUrl},
+               profile_image_storage_key = #{profileImageStorageKey},
+               profile_image_content_type = #{profileImageContentType},
+               profile_image_file_size = #{profileImageFileSize}, bio = #{bio},
+               role = #{role}, status = #{status}, email_verified_at = #{emailVerifiedAt},
+               phone_verified_at = #{phoneVerifiedAt}, last_login_at = #{lastLoginAt},
+               login_fail_count = #{loginFailCount}, locked_until = #{lockedUntil},
+               password_changed_at = #{passwordChangedAt}, deleted_at = #{deletedAt},
+               updated_at = NOW()
+         WHERE user_id = #{userId}
+    </update>
+</mapper>
+
+

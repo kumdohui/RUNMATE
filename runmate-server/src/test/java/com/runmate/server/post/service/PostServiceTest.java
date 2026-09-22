@@ -30,19 +30,19 @@ import com.runmate.server.post.domain.RunningIntensity;
 import com.runmate.server.post.domain.RunningRecord;
 import com.runmate.server.post.dto.CreatePostRequest;
 import com.runmate.server.post.dto.CreatePostResponse;
-import com.runmate.server.post.repository.CategoryRepository;
-import com.runmate.server.post.repository.PostImageRepository;
-import com.runmate.server.post.repository.PostRepository;
-import com.runmate.server.post.repository.RunningRecordRepository;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.post.mapper.CategoryMapper;
+import com.runmate.server.post.mapper.PostImageMapper;
+import com.runmate.server.post.mapper.PostMapper;
+import com.runmate.server.post.mapper.RunningRecordMapper;
+import com.runmate.server.user.mapper.UserMapper;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
-    @Mock private PostRepository postRepository;
-    @Mock private CategoryRepository categoryRepository;
-    @Mock private RunningRecordRepository runningRecordRepository;
-    @Mock private PostImageRepository postImageRepository;
-    @Mock private UserRepository userRepository;
+    @Mock private PostMapper postRepository;
+    @Mock private CategoryMapper categoryRepository;
+    @Mock private RunningRecordMapper runningRecordRepository;
+    @Mock private PostImageMapper postImageRepository;
+    @Mock private UserMapper userRepository;
     @Mock private S3ImageStorageService storageService;
     @Mock private JdbcTemplate jdbcTemplate;
 
@@ -110,3 +110,4 @@ class PostServiceTest {
         return category;
     }
 }
+

@@ -19,7 +19,7 @@ import com.runmate.server.user.domain.SocialAccount;
 import com.runmate.server.user.domain.SocialProvider;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
-import com.runmate.server.user.repository.SocialAccountRepository;
+import com.runmate.server.user.mapper.SocialAccountMapper;
 import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class KakaoLoginService {
     private static final String TOKEN_URL = "https://kauth.kakao.com/oauth/token";
     private static final String USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
 
-    private final SocialAccountRepository socialAccountRepository;
+    private final SocialAccountMapper socialAccountMapper;
     private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Value("${kakao.client-id}")
@@ -49,7 +49,7 @@ public class KakaoLoginService {
             String accessToken = requestAccessToken(authorizationCode);
             KakaoPendingProfile profile = requestProfile(accessToken);
 
-            return socialAccountRepository
+            return socialAccountMapper
                     .findByProviderAndProviderUserId(
                             SocialProvider.KAKAO,
                             profile.providerUserId()
@@ -135,3 +135,5 @@ public class KakaoLoginService {
         return KakaoLoginResult.authenticated(principal);
     }
 }
+
+

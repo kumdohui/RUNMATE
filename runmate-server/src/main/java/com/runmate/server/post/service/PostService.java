@@ -19,11 +19,11 @@ import com.runmate.server.post.dto.CreatePostRequest;
 import com.runmate.server.post.dto.CreatePostResponse;
 import com.runmate.server.post.dto.PostDetailResponse;
 import com.runmate.server.post.dto.PostImageResponse;
-import com.runmate.server.post.repository.CategoryRepository;
-import com.runmate.server.post.repository.PostImageRepository;
-import com.runmate.server.post.repository.PostRepository;
-import com.runmate.server.post.repository.RunningRecordRepository;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.post.mapper.CategoryMapper;
+import com.runmate.server.post.mapper.PostImageMapper;
+import com.runmate.server.post.mapper.PostMapper;
+import com.runmate.server.post.mapper.RunningRecordMapper;
+import com.runmate.server.user.mapper.UserMapper;
 import com.runmate.server.common.storage.S3ImageStorageService;
 
 import lombok.RequiredArgsConstructor;
@@ -33,17 +33,17 @@ import lombok.RequiredArgsConstructor;
 public class PostService {
     private static final String RUNNING_VERIFICATION_CATEGORY = "러닝 인증";
 
-    private final PostRepository postRepository;
-    private final CategoryRepository categoryRepository;
-    private final RunningRecordRepository runningRecordRepository;
-    private final PostImageRepository postImageRepository;
-    private final UserRepository userRepository;
+    private final PostMapper postMapper;
+    private final CategoryMapper categoryMapper;
+    private final RunningRecordMapper runningRecordMapper;
+    private final PostImageMapper postImageMapper;
+    private final UserMapper userMapper;
     private final S3ImageStorageService storageService;
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public CreatePostResponse create(Long authorId, CreatePostRequest request) {
-        Category category = categoryRepository.findById(request.categoryId())
+        Category category = categoryMapper.findById(request.categoryId())
                 .orElseThrow(() -> new AuthException(HttpStatus.BAD_REQUEST, "존재하지 않는 카테고리입니다."));
         if (!Boolean.TRUE.equals(category.getActive())) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "현재 사용할 수 없는 카테고리입니다.");
@@ -60,12 +60,12 @@ public class PostService {
         String title = request.title().trim();
         String content = request.content().trim();
         String summary = createSummary(request.summary(), content);
-        Post post = postRepository.saveAndFlush(
+        Post post = postMapper.saveAndFlush(
                 Post.create(authorId, category.getCategoryId(), title, summary, content, status));
 
         if (request.runningRecord() != null) {
             CreatePostRequest.RunningRecordRequest record = request.runningRecord();
-            runningRecordRepository.save(RunningRecord.create(post.getPostId(), record.runningDate(),
+            runningRecordMapper.save(RunningRecord.create(post.getPostId(), record.runningDate(),
                     record.distanceKm(), record.durationSeconds(), trimToNull(record.locationName()),
                     trimToNull(record.region()), record.intensity(), trimToNull(record.weather())));
         }
@@ -76,17 +76,17 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PostDetailResponse detail(Long viewerId, Long postId) {
-        Post post = postRepository.findById(postId)
+        Post post = postMapper.findById(postId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
         boolean owner = post.getAuthorId().equals(viewerId);
         if (!owner && post.getStatus() != PostStatus.PUBLISHED) {
             throw new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
         }
-        Category category = categoryRepository.findById(post.getCategoryId())
+        Category category = categoryMapper.findById(post.getCategoryId())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "카테고리를 찾을 수 없습니다."));
-        String nickname = userRepository.findById(post.getAuthorId())
+        String nickname = userMapper.findById(post.getAuthorId())
                 .map(user -> user.getNickname()).orElse("탈퇴한 회원");
-        PostDetailResponse.RunningRecordDetail running = runningRecordRepository.findByPostId(postId)
+        PostDetailResponse.RunningRecordDetail running = runningRecordMapper.findByPostId(postId)
                 .map(record -> new PostDetailResponse.RunningRecordDetail(record.getRunningDate(),
                         record.getDistanceKm(), record.getDurationSeconds(), record.getLocationName(),
                         record.getRegion(), record.getIntensity().name(), record.getWeather()))
@@ -94,7 +94,7 @@ public class PostService {
         List<String> tags = jdbcTemplate.query(
                 "SELECT t.display_name FROM tags t JOIN post_tags pt ON pt.tag_id=t.tag_id WHERE pt.post_id=? ORDER BY t.tag_id",
                 (resultSet, rowNumber) -> resultSet.getString(1), postId);
-        List<PostImageResponse> images = postImageRepository.findByPostIdOrderByDisplayOrderAscImageIdAsc(postId)
+        List<PostImageResponse> images = postImageMapper.findByPostIdOrderByDisplayOrderAscImageIdAsc(postId)
                 .stream().map(image -> new PostImageResponse(image.getImageId(), image.getOriginalName(),
                         image.getContentType(), image.getFileSize(), image.getDisplayOrder(),
                         storageService.createViewUrl(image.getStorageKey()))).toList();
@@ -150,3 +150,5 @@ public class PostService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 }
+
+

@@ -1,0 +1,3 @@
+<template>
+  <HomeView />
+</template>

@@ -12,31 +12,31 @@ import org.springframework.transaction.annotation.Transactional;
 import com.runmate.server.auth.domain.EmailVerification;
 import com.runmate.server.auth.dto.AuthDtos.PasswordResetRequest;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.EmailVerificationRepository;
+import com.runmate.server.auth.mapper.EmailVerificationMapper;
 import com.runmate.server.user.domain.User;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.UserMapper;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class PasswordResetService {
-    private final EmailVerificationRepository emailVerificationRepository;
-    private final UserRepository userRepository;
+    private final EmailVerificationMapper emailVerificationMapper;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final ObjectProvider<FindByIndexNameSessionRepository<? extends Session>> sessionRepositoryProvider;
 
     @Transactional
     public void reset(PasswordResetRequest request) {
         LocalDateTime now = LocalDateTime.now();
-        EmailVerification verification = emailVerificationRepository
+        EmailVerification verification = emailVerificationMapper
                 .findById(request.emailVerificationId())
                 .orElseThrow(() -> new AuthException("이메일 인증 정보를 찾을 수 없습니다."));
         if (!verification.isUsableForPasswordReset(now)) {
             throw new AuthException("비밀번호 재설정 인증이 만료되었거나 이미 사용되었습니다.");
         }
 
-        User user = userRepository.findByEmail(verification.getEmail())
+        User user = userMapper.findByEmail(verification.getEmail())
                 .filter(found -> found.getPasswordHash() != null)
                 .orElseThrow(() -> new AuthException("비밀번호를 재설정할 계정을 찾을 수 없습니다."));
         if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
@@ -54,3 +54,5 @@ public class PasswordResetService {
         }
     }
 }
+
+

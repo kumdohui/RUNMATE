@@ -20,8 +20,8 @@ import com.runmate.server.post.domain.Post;
 import com.runmate.server.post.domain.PostImage;
 import com.runmate.server.post.dto.ImageViewUrlResponse;
 import com.runmate.server.post.dto.PostImageResponse;
-import com.runmate.server.post.repository.PostImageRepository;
-import com.runmate.server.post.repository.PostRepository;
+import com.runmate.server.post.mapper.PostImageMapper;
+import com.runmate.server.post.mapper.PostMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,8 +30,8 @@ import lombok.RequiredArgsConstructor;
 public class PostImageService {
     private static final int MAX_IMAGES_PER_POST = 10;
 
-    private final PostRepository postRepository;
-    private final PostImageRepository postImageRepository;
+    private final PostMapper postMapper;
+    private final PostImageMapper postImageMapper;
     private final S3ImageStorageService storageService;
 
     @Value("${aws.s3.max-post-image-size}")
@@ -47,7 +47,7 @@ public class PostImageService {
         if (files == null || files.isEmpty()) {
             throw new ImageStorageException("이미지를 한 장 이상 선택해 주세요.");
         }
-        long existingCount = postImageRepository.countByPostId(postId);
+        long existingCount = postImageMapper.countByPostId(postId);
         if (existingCount + files.size() > MAX_IMAGES_PER_POST) {
             throw new ImageStorageException("게시글 이미지는 최대 10장까지 등록할 수 있습니다.");
         }
@@ -74,7 +74,7 @@ public class PostImageService {
                         storageService.createStorageUri(stored.objectKey()), stored.contentType(),
                         stored.fileSize(), order));
             }
-            List<PostImage> saved = postImageRepository.saveAllAndFlush(entities);
+            List<PostImage> saved = postImageMapper.saveAllAndFlush(entities);
             return saved.stream().map(this::toResponse).toList();
         } catch (RuntimeException exception) {
             uploaded.forEach(image -> deleteQuietly(image.objectKey()));
@@ -88,23 +88,23 @@ public class PostImageService {
     @Transactional
     public void delete(Long userId, Long postId, Long imageId) {
         requireOwner(userId, postId);
-        PostImage image = postImageRepository.findByImageIdAndPostId(imageId, postId)
+        PostImage image = postImageMapper.findByImageIdAndPostId(imageId, postId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "게시글 이미지를 찾을 수 없습니다."));
-        postImageRepository.delete(image);
-        postImageRepository.flush();
+        postImageMapper.delete(image);
+        postImageMapper.flush();
         storageService.delete(image.getStorageKey());
     }
 
     @Transactional(readOnly = true)
     public ImageViewUrlResponse createViewUrl(Long imageId) {
-        PostImage image = postImageRepository.findById(imageId)
+        PostImage image = postImageMapper.findById(imageId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "게시글 이미지를 찾을 수 없습니다."));
         return new ImageViewUrlResponse(storageService.createViewUrl(image.getStorageKey()),
                 Instant.now().plus(Duration.ofMinutes(presignedUrlMinutes)));
     }
 
     private void requireOwner(Long userId, Long postId) {
-        Post post = postRepository.findById(postId)
+        Post post = postMapper.findById(postId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
         if (!post.getAuthorId().equals(userId)) {
             throw new AuthException(HttpStatus.FORBIDDEN, "게시글 작성자만 이미지를 관리할 수 있습니다.");
@@ -132,3 +132,5 @@ public class PostImageService {
         }
     }
 }
+
+

@@ -16,8 +16,8 @@ import com.runmate.server.user.dto.UserProfileDtos.ProfileResponse;
 import com.runmate.server.user.dto.UserProfileDtos.ChangePasswordRequest;
 import com.runmate.server.user.dto.UserProfileDtos.WithdrawRequest;
 import com.runmate.server.user.dto.UserProfileDtos.UpdateProfileRequest;
-import com.runmate.server.user.repository.SocialAccountRepository;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.SocialAccountMapper;
+import com.runmate.server.user.mapper.UserMapper;
 import com.runmate.server.common.storage.S3ImageStorageService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,8 +25,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class UserProfileService {
-    private final UserRepository userRepository;
-    private final SocialAccountRepository socialAccountRepository;
+    private final UserMapper userMapper;
+    private final SocialAccountMapper socialAccountMapper;
     private final ProfileImageUrlResolver profileImageUrlResolver;
     private final PasswordEncoder passwordEncoder;
     private final S3ImageStorageService imageStorageService;
@@ -40,7 +40,7 @@ public class UserProfileService {
         String nickname = request.nickname().trim();
         int length = nickname.codePointCount(0, nickname.length());
         if (length < 2 || length > 20) throw new AuthException("닉네임은 2~20자로 입력해 주세요.");
-        userRepository.findByNickname(nickname)
+        userMapper.findByNickname(nickname)
                 .filter(owner -> !owner.getUserId().equals(userId))
                 .ifPresent(owner -> { throw new AuthException("이미 사용 중인 닉네임입니다."); });
         String bio = request.bio() == null ? null : request.bio().trim();
@@ -72,16 +72,16 @@ public class UserProfileService {
             throw new AuthException("지원하지 않는 소셜 로그인입니다.");
         }
 
-        SocialAccount account = socialAccountRepository.findByUserAndProvider(user, provider)
+        SocialAccount account = socialAccountMapper.findByUserAndProvider(user, provider)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "연결된 소셜 계정을 찾을 수 없습니다."));
-        int loginMethodCount = socialAccountRepository.findByUser(user).size()
+        int loginMethodCount = socialAccountMapper.findByUser(user).size()
                 + (user.getLoginId() != null && user.getPasswordHash() != null ? 1 : 0);
         if (loginMethodCount <= 1) {
             throw new AuthException("마지막 로그인 수단은 해제할 수 없습니다. 다른 로그인 방법을 먼저 연결해 주세요.");
         }
 
-        socialAccountRepository.delete(account);
-        socialAccountRepository.flush();
+        socialAccountMapper.delete(account);
+        socialAccountMapper.flush();
         return response(user);
     }
 
@@ -99,14 +99,14 @@ public class UserProfileService {
         }
         LocalDateTime now = LocalDateTime.now();
         String profileImageKey = user.getProfileImageStorageKey();
-        socialAccountRepository.deleteAll(socialAccountRepository.findByUser(user));
+        socialAccountMapper.deleteAll(socialAccountMapper.findByUser(user));
         user.anonymizeAndWithdraw(now);
-        userRepository.saveAndFlush(user);
+        userMapper.saveAndFlush(user);
         if (profileImageKey != null && !profileImageKey.isBlank()) imageStorageService.delete(profileImageKey);
     }
 
     private ProfileResponse response(User user) {
-        List<String> providers = socialAccountRepository.findProvidersByUserId(user.getUserId())
+        List<String> providers = socialAccountMapper.findProvidersByUserId(user.getUserId())
                 .stream().map(Enum::name).toList();
         return new ProfileResponse(user.getUserId(), user.getLoginId(), user.getEmail(),
                 user.getPhoneNumber(), user.getNickname(), user.getBio(),
@@ -116,7 +116,9 @@ public class UserProfileService {
     }
 
     private User findUser(Long userId) {
-        return userRepository.findById(userId)
+        return userMapper.findById(userId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
     }
 }
+
+

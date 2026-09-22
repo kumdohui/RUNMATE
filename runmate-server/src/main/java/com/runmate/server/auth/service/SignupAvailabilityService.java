@@ -6,24 +6,24 @@ import org.springframework.transaction.annotation.Transactional;
 import com.runmate.server.auth.domain.PhoneVerification;
 import com.runmate.server.auth.dto.AuthDtos.AvailabilityResponse;
 import com.runmate.server.auth.exception.AuthException;
-import com.runmate.server.auth.repository.PhoneVerificationRepository;
+import com.runmate.server.auth.mapper.PhoneVerificationMapper;
 import com.runmate.server.user.domain.User;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.UserMapper;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class SignupAvailabilityService {
-    private final UserRepository userRepository;
-    private final PhoneVerificationRepository phoneVerificationRepository;
+    private final UserMapper userMapper;
+    private final PhoneVerificationMapper phoneVerificationMapper;
 
     @Transactional(readOnly = true)
     public AvailabilityResponse checkLoginId(String loginId) {
         if (loginId == null || !loginId.matches("^[a-z0-9]{4,20}$")) {
             throw new AuthException("아이디는 4~20자의 영문 소문자와 숫자만 사용할 수 있습니다.");
         }
-        return new AvailabilityResponse(!userRepository.existsByLoginId(loginId));
+        return new AvailabilityResponse(!userMapper.existsByLoginId(loginId));
     }
 
     @Transactional(readOnly = true)
@@ -34,16 +34,16 @@ public class SignupAvailabilityService {
             throw new AuthException("닉네임은 2~20자로 입력해 주세요.");
         }
 
-        User nicknameOwner = userRepository.findByNickname(normalizedNickname).orElse(null);
+        User nicknameOwner = userMapper.findByNickname(normalizedNickname).orElse(null);
         if (nicknameOwner == null) {
             return new AvailabilityResponse(true);
         }
 
         if (phoneVerificationId != null) {
-            PhoneVerification verification = phoneVerificationRepository.findById(phoneVerificationId)
+            PhoneVerification verification = phoneVerificationMapper.findById(phoneVerificationId)
                     .orElse(null);
             if (verification != null && verification.getVerifiedAt() != null) {
-                User verifiedUser = userRepository.findByPhoneNumber(verification.getPhoneNumber())
+                User verifiedUser = userMapper.findByPhoneNumber(verification.getPhoneNumber())
                         .orElse(null);
                 if (verifiedUser != null && verifiedUser.getUserId().equals(nicknameOwner.getUserId())) {
                     return new AvailabilityResponse(true);
@@ -54,3 +54,5 @@ public class SignupAvailabilityService {
         return new AvailabilityResponse(false);
     }
 }
+
+

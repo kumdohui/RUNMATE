@@ -2,12 +2,12 @@ import { reactive } from 'vue'
 
 export const authState = reactive({ user: null, checked: false })
 
-export async function loadSession() {
+export const loadSession = async () => {
   try {
-    const response = await fetch('/api/auth/session', { credentials: 'include' })
-    authState.user = response.ok && response.status !== 204
-      ? await response.json()
-      : null
+    const response = await fetch('/api/auth/session', {
+      credentials: 'include',
+    })
+    authState.user = response.ok && response.status !== 204 ? await response.json() : null
   } catch {
     authState.user = null
   } finally {
@@ -15,7 +15,7 @@ export async function loadSession() {
   }
 }
 
-export async function login(loginId, password) {
+export const login = async (loginId, password) => {
   const response = await fetch('/api/auth/login', {
     method: 'POST',
     credentials: 'include',
@@ -29,8 +29,11 @@ export async function login(loginId, password) {
   return data
 }
 
-export async function logout() {
-  const csrfResponse = await fetch('/api/auth/csrf', { credentials: 'include', cache: 'no-store' })
+export const logout = async () => {
+  const csrfResponse = await fetch('/api/auth/csrf', {
+    credentials: 'include',
+    cache: 'no-store',
+  })
   if (!csrfResponse.ok) throw new Error('로그아웃 보안 정보를 가져오지 못했습니다.')
   const csrf = await csrfResponse.json()
   const response = await fetch('/api/auth/logout', {

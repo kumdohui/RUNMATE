@@ -12,7 +12,7 @@ import com.runmate.server.auth.exception.AuthException;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.UserMapper;
 import com.runmate.server.user.service.ProfileImageUrlResolver;
 
 import lombok.RequiredArgsConstructor;
@@ -23,14 +23,14 @@ public class LoginService {
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final int LOCK_MINUTES = 10;
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Transactional(noRollbackFor = AuthException.class)
     public RunmatePrincipal login(LoginRequest request) {
         LocalDateTime now = LocalDateTime.now();
-        User user = userRepository.findByLoginId(request.loginId()).orElseThrow(this::invalidCredentials);
+        User user = userMapper.findByLoginId(request.loginId()).orElseThrow(this::invalidCredentials);
 
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new AuthException(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다.");
@@ -55,3 +55,5 @@ public class LoginService {
         return new AuthException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
     }
 }
+
+

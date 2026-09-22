@@ -10,7 +10,7 @@ import com.runmate.server.common.storage.S3ImageStorageService;
 import com.runmate.server.common.storage.StoredImage;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.dto.ProfileImageResponse;
-import com.runmate.server.user.repository.UserRepository;
+import com.runmate.server.user.mapper.UserMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProfileImageService {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final S3ImageStorageService imageStorageService;
 
     @Transactional
@@ -34,7 +34,7 @@ public class ProfileImageService {
                     storedImage.contentType(),
                     storedImage.fileSize()
             );
-            userRepository.saveAndFlush(user);
+            userMapper.saveAndFlush(user);
         } catch (RuntimeException exception) {
             try {
                 imageStorageService.delete(storedImage.objectKey());
@@ -56,7 +56,7 @@ public class ProfileImageService {
         User user = findUser(userId);
         String objectKey = user.getProfileImageStorageKey();
         user.removeProfileImage();
-        userRepository.saveAndFlush(user);
+        userMapper.saveAndFlush(user);
         imageStorageService.delete(objectKey);
     }
 
@@ -74,7 +74,9 @@ public class ProfileImageService {
     }
 
     private User findUser(Long userId) {
-        return userRepository.findById(userId)
+        return userMapper.findById(userId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
     }
 }
+
+
