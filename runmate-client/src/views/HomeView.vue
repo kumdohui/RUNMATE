@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { authState, logout } from '../auth'
+import { getDefaultPostImage } from '../default-post-images'
 
 const logoutMessage = ref('')
 async function handleLogout() {
@@ -54,6 +55,7 @@ async function loadHomeSummary(page = 0) {
     }))
     recentPosts.value = (data.recentPosts ?? []).map((post) => ({
       ...post,
+      imageUrl: post.imageUrl || getDefaultPostImage(post.categoryName),
       distanceLabel: formatDistance(post.distanceKm),
       timeLabel: formatDuration(post.durationSeconds),
       paceLabel: formatPace(post.distanceKm, post.durationSeconds),
@@ -80,9 +82,8 @@ onMounted(loadHomeSummary)
   <div class="home-page">
     <header class="home-header"><div class="home-nav">
       <RouterLink class="home-brand" to="/"><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink>
-      <nav class="home-menu" aria-label="주요 메뉴"><a href="#courses">코스 탐색</a><a href="#community">러닝 피드</a></nav>
-      <nav v-if="authState.user" class="home-actions" aria-label="회원 메뉴"><RouterLink class="home-write" to="/posts/new">글쓰기</RouterLink><RouterLink class="member-name" to="/profile">{{ authState.user.nickname }}님</RouterLink><button class="home-logout" type="button" @click="handleLogout">로그아웃</button></nav>
-      <nav v-else class="home-actions" aria-label="회원 메뉴"><RouterLink class="home-login" to="/login">로그인</RouterLink><RouterLink class="home-signup" to="/signup">시작하기 <span>↗</span></RouterLink></nav>
+      <nav v-if="authState.user" class="home-actions" aria-label="회원 메뉴"><RouterLink class="home-course-link" to="/courses">코스 탐색</RouterLink><RouterLink class="home-write" to="/posts/new"><span aria-hidden="true">＋</span> 글쓰기</RouterLink><RouterLink class="member-name" to="/profile"><span class="member-avatar"><img v-if="authState.user.profileImageUrl" :src="authState.user.profileImageUrl" alt="" /><span v-else>{{ authState.user.nickname?.slice(0, 1) }}</span></span><span>{{ authState.user.nickname }}님</span></RouterLink><button class="home-logout" type="button" @click="handleLogout">로그아웃</button></nav>
+      <nav v-else class="home-actions" aria-label="회원 메뉴"><RouterLink class="home-course-link" to="/courses">코스 탐색</RouterLink><RouterLink class="home-login" to="/login">로그인</RouterLink><RouterLink class="home-signup" to="/signup">시작하기 <span>↗</span></RouterLink></nav>
     </div></header>
     <p v-if="logoutMessage" class="home-alert">{{ logoutMessage }}</p>
     <main class="home-main">
@@ -105,7 +106,7 @@ onMounted(loadHomeSummary)
       <section id="courses" class="popular-section">
         <div class="section-heading">
           <div><span class="section-kicker">CURATED FOR RUNNERS</span><h2>지금 가장 사랑받는 코스</h2><p>좋아요와 댓글 반응이 가장 많은 코스를 만나보세요.</p></div>
-          <a href="#courses" @click.prevent>모든 코스 보기 <span>→</span></a>
+          <RouterLink to="/courses">모든 코스 보기 <span>→</span></RouterLink>
         </div>
         <div class="course-grid">
           <article v-for="course in courses" :key="course.postId" class="course-card">
@@ -120,7 +121,7 @@ onMounted(loadHomeSummary)
         <div class="feed-heading"><div><span class="section-kicker">TODAY'S RUNNING FEED</span><h2>오늘의 러닝 피드</h2></div><div class="feed-tools"><label aria-label="게시글 정렬"><select v-model="feedSort" @change="changeSort"><option value="latest">최신순</option><option value="oldest">오래된순</option><option value="views">조회순</option><option value="likes">좋아요순</option></select></label></div></div>
         <div class="feed-grid">
           <RouterLink v-for="post in recentPosts" :key="post.postId" class="feed-card" :to="`/posts/${post.postId}`">
-            <div class="feed-image"><img v-if="post.imageUrl" :src="post.imageUrl" :alt="post.title" /><span>{{ post.categoryName }}</span></div>
+            <div class="feed-image"><img :src="post.imageUrl" :alt="post.imageUrl ? post.title : `${post.categoryName} 기본 이미지`" /><span>{{ post.categoryName }}</span></div>
             <div class="feed-body"><h3>{{ post.title }}</h3><p>{{ post.summary }}</p><div class="feed-metrics"><b v-if="post.distanceLabel">{{ post.distanceLabel }}</b><b v-if="post.timeLabel">{{ post.timeLabel }}</b><b v-if="post.paceLabel">{{ post.paceLabel }}</b></div><small>{{ post.authorNickname }} · ♡ {{ post.likeCount }} · 댓글 {{ post.commentCount }}</small></div>
           </RouterLink>
         </div>

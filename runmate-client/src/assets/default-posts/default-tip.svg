@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title">
+  <title id="title">러닝 팁 기본 이미지</title>
+  <rect width="1200" height="800" rx="48" fill="#f5f8e9"/>
+  <rect x="270" y="120" width="660" height="560" rx="160" fill="#e8efcf"/>
+  <g transform="translate(150 100) scale(.75)" fill="none" stroke="#176f50" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M600 242c-111 0-201 86-201 193 0 70 39 133 100 167 22 13 36 35 36 59h130c0-24 14-46 36-59 61-34 100-97 100-167 0-107-90-193-201-193z" fill="#f5f8e9"/>
+    <path d="M537 661h126M554 715h92"/>
+    <path d="m525 438 51 51 101-112"/>
+    <path d="M600 190v-45M403 242l-32-32M797 242l32-32M344 430h-45M901 430h-45"/>
+  </g>
+</svg>

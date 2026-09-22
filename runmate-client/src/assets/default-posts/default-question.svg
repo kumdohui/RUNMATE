@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title">
+  <title id="title">질문과 답변 기본 이미지</title>
+  <rect width="1200" height="800" rx="48" fill="#f4f1f8"/>
+  <rect x="270" y="120" width="660" height="560" rx="160" fill="#e8e1f1"/>
+  <g transform="translate(180 112) scale(.7)" fill="none" stroke="#176f50" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M558 387c62-49 162-67 247-37 95 33 149 106 135 185-15 88-104 145-207 141-53-2-99-14-139-35l-74 35 20-66c-48-58-43-162 18-223z" fill="#f4f1f8"/>
+    <path d="M315 210c75-65 205-80 310-45 110 36 171 121 154 210-13 72-78 131-167 151l55 57-89-36c-113 16-223-19-280-93-62-79-55-182 17-244z" fill="#f4f1f8"/>
+    <path d="M445 326c4-45 35-73 80-73 47 0 79 28 79 68 0 34-20 51-48 68-24 15-34 28-34 55"/>
+    <circle cx="522" cy="483" r="12" fill="#176f50" stroke="none"/>
+    <path d="M650 532h34M727 532h34M804 532h34"/>
+  </g>
+</svg>

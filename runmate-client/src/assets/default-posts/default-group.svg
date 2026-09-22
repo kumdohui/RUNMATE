@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title">
+  <title id="title">러닝 모임 기본 이미지</title>
+  <rect width="1200" height="800" rx="48" fill="#eef7f1"/>
+  <rect x="270" y="120" width="660" height="560" rx="160" fill="#dcefe3"/>
+  <g transform="translate(132 88) scale(.78)" fill="#176f50">
+    <circle cx="600" cy="296" r="62"/>
+    <circle cx="390" cy="354" r="50"/>
+    <circle cx="810" cy="354" r="50"/>
+    <path d="M510 620v-61c0-78 40-137 90-137s90 59 90 137v61z"/>
+    <path d="M290 620v-48c0-67 40-118 90-118s90 51 90 118v48z"/>
+    <path d="M730 620v-48c0-67 40-118 90-118s90 51 90 118v48z"/>
+  </g>
+</svg>

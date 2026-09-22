@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title">
+  <title id="title">코스 추천 기본 이미지</title>
+  <rect width="1200" height="800" rx="48" fill="#edf7f5"/>
+  <rect x="270" y="120" width="660" height="560" rx="160" fill="#d9eeea"/>
+  <g transform="translate(120 80) scale(.8)" fill="none" stroke="#176f50" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="384" cy="556" r="30" fill="#edf7f5"/>
+    <path d="M420 543c66-16 75-100 142-112 74-14 98 82 174 57" stroke-dasharray="3 48"/>
+    <path d="M798 234c-82 0-148 64-148 143 0 101 148 221 148 221s148-120 148-221c0-79-66-143-148-143z" fill="#edf7f5"/>
+    <circle cx="798" cy="376" r="45"/>
+  </g>
+</svg>

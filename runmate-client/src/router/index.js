@@ -12,6 +12,7 @@ import ProfileView from '../views/ProfileView.vue'
 import ProfileEditView from '../views/ProfileEditView.vue'
 import PasswordResetView from '../views/PasswordResetView.vue'
 import FindLoginIdView from '../views/FindLoginIdView.vue'
+import CourseListView from '../views/CourseListView.vue'
 
 export default createRouter({
   history: createWebHistory(),
@@ -26,6 +27,7 @@ export default createRouter({
     { path: '/terms/:type/:version', component: TermsView },
     { path: '/posts/new', component: CreatePostView },
     { path: '/posts/:postId', component: PostDetailView },
+    { path: '/courses', component: CourseListView },
     { path: '/profile', component: ProfileView },
     { path: '/profile/edit', component: ProfileEditView },
     { path: '/settings/account', component: AccountView },

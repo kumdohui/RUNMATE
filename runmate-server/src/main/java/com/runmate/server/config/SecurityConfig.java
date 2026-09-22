@@ -51,7 +51,9 @@ public class SecurityConfig {
                                 "/api/auth/naver/callback",
                                 "/api/auth/naver/pending",
                                 "/api/auth/naver/signup",
-                                "/api/home/summary"
+                                "/api/home/summary",
+                                "/api/courses",
+                                "/api/categories"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

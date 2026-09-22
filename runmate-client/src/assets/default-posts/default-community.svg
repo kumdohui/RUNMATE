@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title">
+  <title id="title">자유게시판 기본 이미지</title>
+  <rect width="1200" height="800" rx="48" fill="#f1f3f8"/>
+  <rect x="270" y="120" width="660" height="560" rx="160" fill="#e2e7f1"/>
+  <g transform="translate(150 100) scale(.75)" fill="none" stroke="#176f50" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M518 350h302c50 0 90 40 90 90v120c0 50-40 90-90 90h-38l35 75-108-75H518c-50 0-90-40-90-90V440c0-50 40-90 90-90z" fill="#f1f3f8"/>
+    <path d="M330 205h386c50 0 90 40 90 90v112c0 50-40 90-90 90H505l-103 77 31-77H330c-50 0-90-40-90-90V295c0-50 40-90 90-90z" fill="#f1f3f8"/>
+    <circle cx="390" cy="350" r="13" fill="#176f50" stroke="none"/>
+    <circle cx="523" cy="350" r="13" fill="#176f50" stroke="none"/>
+    <circle cx="656" cy="350" r="13" fill="#176f50" stroke="none"/>
+  </g>
+</svg>
