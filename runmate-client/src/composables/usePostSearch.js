@@ -35,15 +35,6 @@ export const usePostSearch = () => {
   const message = ref('')
   const filters = reactive(initialFilters())
 
-  const hasCondition = () =>
-    Boolean(
-      filters.keyword.trim() ||
-      filters.categoryId ||
-      filters.region ||
-      filters.distanceRange ||
-      filters.tag.trim(),
-    )
-
   const createParams = (page) => {
     const params = new URLSearchParams({
       page: String(page),
@@ -94,25 +85,14 @@ export const usePostSearch = () => {
       posts.value = []
       return
     }
-    if (!hasCondition()) {
-      message.value = '검색어나 필터 조건을 하나 이상 입력해 주세요.'
-      searched.value = false
-      posts.value = []
-      totalPages.value = 0
-      return
-    }
     searched.value = true
     await loadPosts(0)
   }
 
-  const reset = () => {
+  const reset = async () => {
     Object.assign(filters, initialFilters())
-    searched.value = false
-    posts.value = []
-    currentPage.value = 0
-    totalPages.value = 0
-    totalElements.value = 0
-    message.value = ''
+    searched.value = true
+    await loadPosts(0)
   }
 
   const movePage = async (page) => {

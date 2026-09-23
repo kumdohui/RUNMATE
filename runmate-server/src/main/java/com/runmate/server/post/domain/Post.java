@@ -48,4 +48,21 @@ public class Post {
         if (status == PostStatus.PUBLISHED) post.publishedAt = LocalDateTime.now();
         return post;
     }
+
+    public void update(Long categoryId, String title, String summary,
+            String content, PostStatus status) {
+        this.categoryId = categoryId;
+        this.title = title;
+        this.summary = summary;
+        this.content = content;
+        if (this.status != PostStatus.PUBLISHED && status == PostStatus.PUBLISHED) {
+            this.publishedAt = LocalDateTime.now();
+        }
+        this.status = status;
+    }
+
+    public void delete() {
+        this.status = PostStatus.DELETED;
+        this.deletedAt = LocalDateTime.now();
+    }
 }

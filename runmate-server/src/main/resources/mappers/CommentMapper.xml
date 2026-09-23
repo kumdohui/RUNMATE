@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.post.mapper.CommentMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="commentId">
+        INSERT INTO comments (post_id, author_id, parent_comment_id, reply_to_user_id, content, status, created_at, updated_at)
+        VALUES (#{postId}, #{authorId}, #{parentCommentId}, #{replyToUserId}, #{content}, 'PUBLISHED', NOW(), NOW())
+    </insert>
+
+    <update id="update">
+        UPDATE comments
+           SET content = #{content},
+               updated_at = NOW()
+         WHERE comment_id = #{commentId}
+           AND deleted_at IS NULL
+    </update>
+
+    <update id="markDeleted">
+        UPDATE comments
+           SET status = 'DELETED',
+               deleted_at = NOW(),
+               updated_at = NOW()
+         WHERE comment_id = #{commentId}
+           AND deleted_at IS NULL
+    </update>
+
+    <select id="findById" resultType="com.runmate.server.post.domain.Comment">
+        SELECT comment_id, post_id, author_id, parent_comment_id, reply_to_user_id, content, deleted_at
+          FROM comments
+         WHERE comment_id = #{commentId}
+    </select>
+
+    <sql id="rowColumns">
+        c.comment_id, c.post_id, c.author_id,
+        CASE
+            WHEN u.user_id IS NULL OR u.status = 'DELETED' THEN '탈퇴한 사용자'
+            ELSE u.nickname
+        END AS author_nickname,
+        u.profile_image_url AS author_profile_image_url,
+        u.profile_image_storage_key AS author_profile_image_storage_key,
+        c.parent_comment_id,
+        CASE
+            WHEN ru.user_id IS NULL THEN NULL
+            WHEN ru.status = 'DELETED' THEN '탈퇴한 사용자'
+            ELSE ru.nickname
+        END AS reply_to_nickname,
+        c.content, c.created_at, c.updated_at
+    </sql>
+
+    <sql id="rowJoins">
+        FROM comments c
+        LEFT JOIN users u ON u.user_id = c.author_id
+        LEFT JOIN users ru ON ru.user_id = c.reply_to_user_id
+    </sql>
+
+    <select id="findRow" resultType="com.runmate.server.post.dto.CommentRow">
+        SELECT <include refid="rowColumns" />
+        <include refid="rowJoins" />
+         WHERE c.comment_id = #{commentId}
+    </select>
+
+    <select id="findByPostId" resultType="com.runmate.server.post.dto.CommentRow">
+        SELECT <include refid="rowColumns" />
+        <include refid="rowJoins" />
+         WHERE c.post_id = #{postId}
+           AND c.deleted_at IS NULL
+           AND c.status = 'PUBLISHED'
+         ORDER BY c.created_at DESC, c.comment_id DESC
+    </select>
+
+    <select id="countByPostId" resultType="long">
+        SELECT COUNT(*)
+          FROM comments
+         WHERE post_id = #{postId}
+           AND deleted_at IS NULL
+           AND status = 'PUBLISHED'
+    </select>
+
+    <select id="countByAuthor" resultType="long">
+        SELECT COUNT(*)
+          FROM comments c
+          JOIN posts p ON p.post_id = c.post_id
+         WHERE c.author_id = #{authorId}
+           AND c.deleted_at IS NULL
+           AND c.status = 'PUBLISHED'
+           AND p.deleted_at IS NULL
+           AND p.status = 'PUBLISHED'
+    </select>
+
+    <select id="countMine" resultType="long">
+        SELECT COUNT(*)
+          FROM comments c
+          JOIN posts p ON p.post_id = c.post_id
+         WHERE c.author_id = #{authorId}
+           AND c.deleted_at IS NULL
+           AND c.status = 'PUBLISHED'
+           AND p.deleted_at IS NULL
+    </select>
+
+    <select id="searchMine" resultType="com.runmate.server.post.dto.MyCommentRow">
+        SELECT c.comment_id, p.post_id, p.title AS post_title, c.content, c.created_at
+          FROM comments c
+          JOIN posts p ON p.post_id = c.post_id
+         WHERE c.author_id = #{authorId}
+           AND c.deleted_at IS NULL
+           AND c.status = 'PUBLISHED'
+           AND p.deleted_at IS NULL
+         ORDER BY c.created_at DESC, c.comment_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

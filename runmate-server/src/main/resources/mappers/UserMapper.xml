@@ -37,6 +37,15 @@
     <select id="existsByNickname" resultType="boolean">
         SELECT EXISTS(SELECT 1 FROM users WHERE nickname = #{nickname})
     </select>
+    <select id="searchForMention" resultType="com.runmate.server.user.dto.MentionRow">
+        SELECT user_id, nickname, profile_image_url, profile_image_storage_key
+          FROM users
+         WHERE deleted_at IS NULL
+           AND status = 'ACTIVE'
+           AND nickname LIKE CONCAT(#{keyword}, '%')
+         ORDER BY CHAR_LENGTH(nickname), nickname
+         LIMIT #{limit}
+    </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="userId">
         INSERT INTO users (

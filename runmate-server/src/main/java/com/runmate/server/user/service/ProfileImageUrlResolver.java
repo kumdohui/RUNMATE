@@ -18,13 +18,17 @@ public class ProfileImageUrlResolver {
     }
 
     public String resolve(User user, String socialProfileImageUrl) {
-        if (user.getProfileImageStorageKey() != null
-                && !user.getProfileImageStorageKey().isBlank()) {
-            return imageStorageService.createViewUrl(user.getProfileImageStorageKey());
+        String uploaded = resolve(user.getProfileImageStorageKey(), user.getProfileImageUrl());
+        return uploaded != null ? uploaded : socialProfileImageUrl;
+    }
+
+    public String resolve(String storageKey, String profileImageUrl) {
+        if (storageKey != null && !storageKey.isBlank()) {
+            return imageStorageService.createViewUrl(storageKey);
         }
-        if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isBlank()) {
-            return user.getProfileImageUrl();
+        if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+            return profileImageUrl;
         }
-        return socialProfileImageUrl;
+        return null;
     }
 }

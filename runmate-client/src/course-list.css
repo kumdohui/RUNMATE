@@ -270,6 +270,23 @@
   color: #a44a3a !important;
   background: #fff0ec !important;
 }
+.course-message .course-retry {
+  height: 40px;
+  padding: 0 18px;
+  flex: 0 0 auto;
+  color: #fff;
+  background: #176844;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(23, 104, 68, 0.14);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.course-message .course-retry:hover {
+  background: #14583a;
+}
 .course-loading {
   width: 26px;
   height: 26px;

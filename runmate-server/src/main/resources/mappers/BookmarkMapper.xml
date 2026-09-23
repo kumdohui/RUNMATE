@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.post.mapper.BookmarkMapper">
+    <insert id="insert">
+        INSERT INTO bookmarks (post_id, user_id, created_at)
+        VALUES (#{postId}, #{userId}, NOW())
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM bookmarks
+         WHERE post_id = #{postId}
+           AND user_id = #{userId}
+    </delete>
+
+    <select id="exists" resultType="int">
+        SELECT COUNT(*)
+          FROM bookmarks
+         WHERE post_id = #{postId}
+           AND user_id = #{userId}
+    </select>
+
+    <select id="countByUser" resultType="long">
+        SELECT COUNT(*)
+          FROM bookmarks b
+          JOIN posts p ON p.post_id = b.post_id
+         WHERE b.user_id = #{userId}
+           AND p.deleted_at IS NULL
+           AND p.status = 'PUBLISHED'
+    </select>
+
+    <select id="countMine" resultType="long">
+        SELECT COUNT(*)
+          FROM bookmarks b
+          JOIN posts p ON p.post_id = b.post_id
+         WHERE b.user_id = #{userId}
+           AND p.deleted_at IS NULL
+           AND p.status = 'PUBLISHED'
+    </select>
+
+    <select id="searchMine" resultType="com.runmate.server.post.dto.MyPostRow">
+        SELECT p.post_id,
+               category.name AS category_name,
+               p.title,
+               p.summary,
+               p.status,
+               p.published_at,
+               p.created_at,
+               (SELECT pi.storage_key
+                  FROM post_images pi
+                 WHERE pi.post_id = p.post_id
+                 ORDER BY pi.display_order, pi.image_id
+                 LIMIT 1) AS storage_key,
+               rr.distance_km,
+               rr.duration_seconds,
+               rr.region,
+               (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
+               (SELECT COUNT(*) FROM comments c
+                 WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS comment_count
+          FROM bookmarks b
+          JOIN posts p ON p.post_id = b.post_id
+          JOIN categories category ON category.category_id = p.category_id
+          LEFT JOIN running_records rr ON rr.post_id = p.post_id
+         WHERE b.user_id = #{userId}
+           AND p.deleted_at IS NULL
+           AND p.status = 'PUBLISHED'
+         ORDER BY b.created_at DESC, p.post_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

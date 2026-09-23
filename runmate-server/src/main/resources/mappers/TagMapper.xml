@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.post.mapper.TagMapper">
+    <select id="findNamesByPostId" resultType="string">
+        SELECT t.display_name
+        FROM tags t
+        JOIN post_tags pt ON pt.tag_id = t.tag_id
+        WHERE pt.post_id = #{postId}
+        ORDER BY t.tag_id
+    </select>
+
+    <select id="findIdByNormalizedName" resultType="long">
+        SELECT tag_id
+        FROM tags
+        WHERE normalized_name = #{normalizedName}
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO tags (display_name, normalized_name)
+        VALUES (#{displayName}, #{normalizedName})
+        ON DUPLICATE KEY UPDATE display_name = VALUES(display_name)
+    </insert>
+
+    <insert id="connect">
+        INSERT IGNORE INTO post_tags (post_id, tag_id)
+        VALUES (#{postId}, #{tagId})
+    </insert>
+
+    <delete id="deleteConnectionsByPostId">
+        DELETE FROM post_tags
+        WHERE post_id = #{postId}
+    </delete>
+</mapper>

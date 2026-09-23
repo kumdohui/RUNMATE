@@ -9,6 +9,10 @@
         INSERT INTO running_records (post_id, running_date, distance_km, duration_seconds, location_name, region, intensity, weather, created_at, updated_at)
         VALUES (#{postId}, #{runningDate}, #{distanceKm}, #{durationSeconds}, #{locationName}, #{region}, #{intensity}, #{weather}, NOW(), NOW())
     </insert>
+    <delete id="deleteByPostId">
+        DELETE FROM running_records
+        WHERE post_id = #{postId}
+    </delete>
 </mapper>
 
 

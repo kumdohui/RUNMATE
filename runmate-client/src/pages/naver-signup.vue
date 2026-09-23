@@ -1,3 +1,7 @@
+<script setup>
+import SocialSignupView from '../components/auth/SocialSignupView.vue'
+</script>
+
 <template>
-  <NaverSignupView />
+  <SocialSignupView provider="NAVER" />
 </template>

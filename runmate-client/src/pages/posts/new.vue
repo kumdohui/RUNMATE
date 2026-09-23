@@ -1,3 +1,7 @@
+<script setup>
+import PostEditor from '~/components/post/PostEditor.vue'
+</script>
+
 <template>
-  <CreatePostView />
+  <PostEditor />
 </template>

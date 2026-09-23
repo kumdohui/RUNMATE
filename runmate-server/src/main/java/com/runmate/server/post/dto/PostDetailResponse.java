@@ -14,6 +14,7 @@ public record PostDetailResponse(
         String title,
         String content,
         String status,
+        boolean owner,
         LocalDateTime publishedAt,
         LocalDateTime createdAt,
         RunningRecordDetail runningRecord,

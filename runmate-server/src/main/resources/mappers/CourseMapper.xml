@@ -49,7 +49,7 @@
                category.name AS category_name,
                p.title,
                p.summary,
-               u.nickname AS author_nickname,
+               CASE WHEN u.status = 'DELETED' THEN '탈퇴한 사용자' ELSE u.nickname END AS author_nickname,
                (SELECT pi.storage_key
                   FROM post_images pi
                  WHERE pi.post_id = p.post_id

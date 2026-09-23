@@ -13,6 +13,72 @@
         UPDATE posts SET category_id=#{categoryId}, title=#{title}, summary=#{summary}, content=#{content}, thumbnail_url=#{thumbnailUrl}, view_count=#{viewCount}, is_notice=#{notice}, status=#{status}, published_at=#{publishedAt}, deleted_at=#{deletedAt}, updated_at=NOW()
         WHERE post_id=#{postId}
     </update>
+
+    <sql id="mineConditions">
+        WHERE p.author_id = #{authorId}
+          AND p.deleted_at IS NULL
+          AND p.status IN ('PUBLISHED', 'DRAFT')
+        <if test="status != null">
+            AND p.status = #{status}
+        </if>
+        <if test="keyword != null">
+            AND (
+                p.title LIKE CONCAT('%', #{keyword}, '%')
+                OR p.summary LIKE CONCAT('%', #{keyword}, '%')
+                OR p.content LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </sql>
+
+    <select id="summarizeMine" resultType="com.runmate.server.post.dto.MyPostSummary">
+        SELECT COUNT(*) AS post_count,
+               COALESCE(SUM(CASE WHEN p.status = 'PUBLISHED' THEN 1 ELSE 0 END), 0) AS published_count,
+               COALESCE(SUM(CASE WHEN p.status = 'DRAFT' THEN 1 ELSE 0 END), 0) AS draft_count,
+               COALESCE(SUM(rr.distance_km), 0) AS total_distance_km,
+               COALESCE(SUM(rr.duration_seconds), 0) AS total_duration_seconds
+          FROM posts p
+          LEFT JOIN running_records rr ON rr.post_id = p.post_id
+         WHERE p.author_id = #{authorId}
+           AND p.deleted_at IS NULL
+           AND p.status IN ('PUBLISHED', 'DRAFT')
+    </select>
+
+    <select id="countMine" resultType="long">
+        SELECT COUNT(*)
+          FROM posts p
+        <include refid="mineConditions" />
+    </select>
+
+    <select id="searchMine" resultType="com.runmate.server.post.dto.MyPostRow">
+        SELECT p.post_id,
+               category.name AS category_name,
+               p.title,
+               p.summary,
+               p.status,
+               p.published_at,
+               p.created_at,
+               (SELECT pi.storage_key
+                  FROM post_images pi
+                 WHERE pi.post_id = p.post_id
+                 ORDER BY pi.display_order, pi.image_id
+                 LIMIT 1) AS storage_key,
+               rr.distance_km,
+               rr.duration_seconds,
+               rr.region,
+               (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
+               (SELECT COUNT(*) FROM comments c
+                 WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS comment_count
+          FROM posts p
+          JOIN categories category ON category.category_id = p.category_id
+          LEFT JOIN running_records rr ON rr.post_id = p.post_id
+        <include refid="mineConditions" />
+        ORDER BY
+        <choose>
+            <when test="sort == 'oldest'">COALESCE(p.published_at, p.created_at) ASC, p.post_id ASC</when>
+            <otherwise>COALESCE(p.published_at, p.created_at) DESC, p.post_id DESC</otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>
 
 

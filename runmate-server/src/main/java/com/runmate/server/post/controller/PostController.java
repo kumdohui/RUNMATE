@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,7 +37,33 @@ public class PostController {
 
     @GetMapping("/{postId}")
     public PostDetailResponse detail(@PathVariable Long postId, Authentication authentication) {
-        return postService.detail(principal(authentication).userId(), postId);
+        Long viewerId = authentication != null
+                && authentication.getPrincipal() instanceof RunmatePrincipal principal
+                        ? principal.userId()
+                        : null;
+        return postService.detail(viewerId, postId);
+    }
+
+    @PutMapping("/{postId}")
+    public CreatePostResponse update(
+            @PathVariable Long postId,
+            @Valid @RequestBody CreatePostRequest request,
+            Authentication authentication
+    ) {
+        return postService.update(
+                principal(authentication).userId(),
+                postId,
+                request
+        );
+    }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long postId,
+            Authentication authentication
+    ) {
+        postService.delete(principal(authentication).userId(), postId);
+        return ResponseEntity.noContent().build();
     }
 
     private RunmatePrincipal principal(Authentication authentication) {

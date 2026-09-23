@@ -7,10 +7,6 @@ export default defineNuxtConfig({
       path: '~/components',
       pathPrefix: false,
     },
-    {
-      path: '~/views',
-      pathPrefix: false,
-    },
   ],
   devServer: {
     port: 5173,

@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 public interface RunningRecordMapper {
     Optional<RunningRecord> findByPostId(Long postId);
     int insert(RunningRecord record);
+    int deleteByPostId(Long postId);
 
     default RunningRecord save(RunningRecord record) {
         insert(record);

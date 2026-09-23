@@ -1,8 +1,11 @@
 package com.runmate.server.user.mapper;
 
+import java.util.List;
 import java.util.Optional;
 import com.runmate.server.user.domain.User;
+import com.runmate.server.user.dto.MentionRow;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface UserMapper {
@@ -15,6 +18,7 @@ public interface UserMapper {
     boolean existsByEmail(String email);
     boolean existsByPhoneNumber(String phoneNumber);
     boolean existsByNickname(String nickname);
+    List<MentionRow> searchForMention(@Param("keyword") String keyword, @Param("limit") int limit);
 
     int insert(User user);
     int update(User user);

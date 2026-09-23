@@ -1,17 +1,28 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { authState, loadSession } from '../auth'
+import { authState, loadSession } from '../../auth'
+import { createCsrfHeaders, readJson } from '../../api/http'
+
+const props = defineProps({
+  postId: {
+    type: Number,
+    default: null,
+  },
+})
 
 const router = useRouter()
 const categories = ref([])
 const images = ref([])
 const previews = ref([])
+const existingImages = ref([])
+const removedImageIds = ref([])
 const submitting = ref(false)
 const message = ref('')
 const success = ref(false)
 const createdPostId = ref(null)
 const includeRunning = ref(true)
+const editing = computed(() => Boolean(props.postId))
 const regions = [
   '서울',
   '부산',
@@ -81,7 +92,36 @@ onMounted(async () => {
   if (!response.ok) return (message.value = '카테고리를 불러오지 못했습니다.')
   categories.value = await response.json()
   if (categories.value.length) form.categoryId = String(categories.value[0].categoryId)
+  if (editing.value) await loadPost()
 })
+
+const loadPost = async () => {
+  const response = await fetch(`/api/posts/${props.postId}`, {
+    credentials: 'include',
+  })
+  const body = await readJson(response, '게시글을 불러오지 못했습니다.')
+  if (!body.owner) return router.replace(`/posts/${props.postId}`)
+
+  form.categoryId = String(body.categoryId)
+  form.title = body.title
+  form.content = body.content
+  form.tags = body.tags.join(', ')
+  form.status = body.status
+  existingImages.value = body.images
+  includeRunning.value = Boolean(body.runningRecord)
+  if (!body.runningRecord) return
+
+  const record = body.runningRecord
+  form.runningDate = record.runningDate
+  form.distanceKm = record.distanceKm
+  form.durationHours = Math.floor(record.durationSeconds / 3600)
+  form.durationMinutes = Math.floor((record.durationSeconds % 3600) / 60)
+  form.durationSeconds = record.durationSeconds % 60
+  form.locationName = record.locationName || ''
+  form.region = record.region || ''
+  form.intensity = record.intensity
+  form.weather = record.weather || ''
+}
 const clearPreviews = () => {
   previews.value.forEach(URL.revokeObjectURL)
   previews.value = []
@@ -90,7 +130,7 @@ onBeforeUnmount(clearPreviews)
 
 const selectImages = (event) => {
   const selected = [...event.target.files]
-  if (selected.length > 10)
+  if (selected.length + existingImages.value.length > 10)
     return (message.value = '이미지는 최대 10장까지 선택할 수 있습니다.')
   if (
     selected.some(
@@ -111,13 +151,9 @@ const removeImage = (index) => {
   images.value.splice(index, 1)
   previews.value.splice(index, 1)
 }
-const getCsrf = async () => {
-  const response = await fetch('/api/auth/csrf', {
-    credentials: 'include',
-    cache: 'no-store',
-  })
-  if (!response.ok) throw new Error('보안 정보를 가져오지 못했습니다.')
-  return response.json()
+const removeExistingImage = (index) => {
+  removedImageIds.value.push(existingImages.value[index].imageId)
+  existingImages.value.splice(index, 1)
 }
 const submit = async () => {
   if (!canSubmit.value) return
@@ -126,7 +162,7 @@ const submit = async () => {
   createdPostId.value = null
   message.value = ''
   try {
-    const csrf = await getCsrf()
+    const csrfHeaders = await createCsrfHeaders()
     const runningRecord = includeRunning.value
       ? {
           runningDate: form.runningDate,
@@ -138,12 +174,14 @@ const submit = async () => {
           weather: form.weather.trim() || null,
         }
       : null
-    const postResponse = await fetch('/api/posts', {
-      method: 'POST',
+    const postResponse = await fetch(
+      editing.value ? `/api/posts/${props.postId}` : '/api/posts',
+      {
+      method: editing.value ? 'PUT' : 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        [csrf.headerName]: csrf.token,
+        ...csrfHeaders,
       },
       body: JSON.stringify({
         categoryId: Number(form.categoryId),
@@ -157,10 +195,21 @@ const submit = async () => {
           .filter(Boolean),
         status: form.status,
       }),
-    })
-    const postBody = await postResponse.json().catch(() => ({}))
-    if (!postResponse.ok)
-      throw new Error(postBody.message || '게시글을 저장하지 못했습니다.')
+      },
+    )
+    const postBody = await readJson(postResponse, '게시글을 저장하지 못했습니다.')
+
+    for (const imageId of removedImageIds.value) {
+      const response = await fetch(
+        `/api/posts/${postBody.postId}/images/${imageId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: csrfHeaders,
+        },
+      )
+      if (!response.ok) throw new Error('기존 이미지를 삭제하지 못했습니다.')
+    }
 
     if (images.value.length) {
       const imageForm = new FormData()
@@ -171,7 +220,7 @@ const submit = async () => {
       const imageResponse = await fetch(`/api/posts/${postBody.postId}/images`, {
         method: 'POST',
         credentials: 'include',
-        headers: { [csrf.headerName]: csrf.token },
+        headers: csrfHeaders,
         body: imageForm,
       })
       if (!imageResponse.ok) {
@@ -183,7 +232,9 @@ const submit = async () => {
     }
     success.value = true
     createdPostId.value = postBody.postId
-    message.value = `게시글 ${postBody.postId}번이 등록되었습니다.`
+    message.value = editing.value
+      ? '게시글이 수정되었습니다.'
+      : `게시글 ${postBody.postId}번이 등록되었습니다.`
   } catch (error) {
     message.value = error.message
   } finally {
@@ -204,7 +255,7 @@ const submit = async () => {
     <main class="write-main">
       <div class="write-heading">
         <span>SHARE YOUR RUN</span>
-        <h1>오늘의 러닝을 기록하세요</h1>
+        <h1>{{ editing ? '게시글을 수정하세요' : '오늘의 러닝을 기록하세요' }}</h1>
         <p>기록과 사진을 남기고 다른 러너들과 코스를 공유해 보세요.</p>
       </div>
       <form
@@ -378,6 +429,21 @@ const submit = async () => {
           >
           <div class="image-preview-grid">
             <figure
+              v-for="(image, index) in existingImages"
+              :key="image.imageId"
+            >
+              <img
+                :src="image.imageUrl"
+                :alt="image.originalName"
+              /><button
+                type="button"
+                @click="removeExistingImage(index)"
+              >
+                ×
+              </button>
+              <figcaption>기존 {{ index + 1 }}</figcaption>
+            </figure>
+            <figure
               v-for="(preview, index) in previews"
               :key="preview"
             >
@@ -410,7 +476,9 @@ const submit = async () => {
               ? '저장 중...'
               : form.status === 'DRAFT'
                 ? '임시저장'
-                : '게시글 등록'
+                : editing
+                  ? '수정 완료'
+                  : '게시글 등록'
           }}
         </button>
       </form>
@@ -428,7 +496,9 @@ const submit = async () => {
       >
         <div class="success-modal-mark">✓</div>
         <span>POST COMPLETE</span>
-        <h2 id="postSuccessTitle">게시글이 등록되었습니다</h2>
+        <h2 id="postSuccessTitle">
+          {{ editing ? '게시글이 수정되었습니다' : '게시글이 등록되었습니다' }}
+        </h2>
         <p>작성한 게시글에서 기록과 사진을 확인해 보세요.</p>
         <div>
           <button
