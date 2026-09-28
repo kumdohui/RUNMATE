@@ -52,11 +52,7 @@ public class ReportService {
 
     private void requireTarget(Long reporterId, String targetType, Long targetId) {
         if ("POST".equals(targetType)) {
-            Post post = postMapper.findById(targetId)
-                    .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다."));
-            if (post.getStatus() != PostStatus.PUBLISHED || post.getDeletedAt() != null) {
-                throw new AuthException(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다.");
-            }
+            Post post = requireVisiblePost(targetId);
             if (post.getAuthorId().equals(reporterId)) {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "본인 게시글은 신고할 수 없습니다.");
             }
@@ -69,6 +65,8 @@ public class ReportService {
             if (comment.getDeletedAt() != null) {
                 throw new AuthException(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다.");
             }
+            requireVisiblePost(comment.getPostId());
+            requireActiveAuthor(comment.getAuthorId());
             if (comment.getAuthorId().equals(reporterId)) {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "본인 댓글은 신고할 수 없습니다.");
             }
@@ -92,6 +90,24 @@ public class ReportService {
         User author = userMapper.findById(authorId).orElse(null);
         if (author != null && author.getRole() == UserRole.ADMIN) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "관리자 계정은 신고할 수 없습니다.");
+        }
+    }
+
+    private Post requireVisiblePost(Long postId) {
+        Post post = postMapper.findById(postId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다."));
+        if (post.getStatus() != PostStatus.PUBLISHED || post.getDeletedAt() != null) {
+            throw new AuthException(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다.");
+        }
+        requireActiveAuthor(post.getAuthorId());
+        return post;
+    }
+
+    private void requireActiveAuthor(Long authorId) {
+        User author = userMapper.findById(authorId)
+                .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다."));
+        if (author.getStatus() == UserStatus.SUSPENDED) {
+            throw new AuthException(HttpStatus.NOT_FOUND, "신고 대상을 찾을 수 없습니다.");
         }
     }
 }

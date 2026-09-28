@@ -11,6 +11,8 @@ import com.runmate.server.post.dto.SavedPostResponse;
 import com.runmate.server.post.mapper.BookmarkMapper;
 import com.runmate.server.post.mapper.PostLikeMapper;
 import com.runmate.server.post.mapper.PostMapper;
+import com.runmate.server.user.domain.UserStatus;
+import com.runmate.server.user.mapper.UserMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ public class ReactionService {
     private final PostLikeMapper postLikeMapper;
     private final BookmarkMapper bookmarkMapper;
     private final S3ImageStorageService storageService;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public PostReactionResponse state(Long viewerId, Long postId) {
@@ -105,6 +108,11 @@ public class ReactionService {
         Post post = postMapper.findById(postId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
         if (post.getStatus() != PostStatus.PUBLISHED || post.getDeletedAt() != null) {
+            throw new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
+        }
+        if (userMapper.findById(post.getAuthorId())
+                .map(user -> user.getStatus() == UserStatus.SUSPENDED)
+                .orElse(false)) {
             throw new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
         }
     }

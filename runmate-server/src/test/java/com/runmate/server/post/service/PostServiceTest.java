@@ -100,6 +100,31 @@ class PostServiceTest {
     }
 
     @Test
+    void savesIncompleteDraft() {
+        Category category = category(1L, "러닝 인증", true);
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(postRepository.saveAndFlush(any(Post.class))).thenAnswer(invocation -> {
+            Post saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "postId", 11L);
+            return saved;
+        });
+        CreatePostRequest request = new CreatePostRequest(
+                1L,
+                "",
+                null,
+                "",
+                null,
+                List.of(),
+                PostStatus.DRAFT
+        );
+
+        CreatePostResponse response = postService.create(3L, request);
+
+        assertThat(response.postId()).isEqualTo(11L);
+        verify(runningRecordRepository, never()).save(any(RunningRecord.class));
+    }
+
+    @Test
     void showsPublishedPostToGuest() {
         Post post = Post.create(3L, 1L, "한강 코스", "요약", "본문", PostStatus.PUBLISHED);
         ReflectionTestUtils.setField(post, "postId", 10L);
@@ -178,4 +203,3 @@ class PostServiceTest {
         return category;
     }
 }
-

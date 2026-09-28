@@ -10,7 +10,9 @@ import com.runmate.server.admin.dto.AdminDtos.ReportDecisionRequest;
 import com.runmate.server.admin.dto.AdminDtos.ReportFeedResponse;
 import com.runmate.server.admin.dto.AdminDtos.ReportItem;
 import com.runmate.server.admin.mapper.AdminUserMapper;
+import com.runmate.server.admin.mapper.AdminActionLogMapper;
 import com.runmate.server.auth.exception.AuthException;
+import com.runmate.server.auth.service.UserSessionService;
 import com.runmate.server.post.domain.Post;
 import com.runmate.server.post.domain.PostStatus;
 import com.runmate.server.post.mapper.CommentMapper;
@@ -37,6 +39,8 @@ public class AdminService {
     private final CommentMapper commentMapper;
     private final UserMapper userMapper;
     private final AdminUserMapper adminUserMapper;
+    private final AdminActionLogMapper adminActionLogMapper;
+    private final UserSessionService userSessionService;
 
     @Transactional(readOnly = true)
     public ReportFeedResponse reports(Integer requestedPage) {
@@ -50,7 +54,12 @@ public class AdminService {
     }
 
     @Transactional
-    public void resolve(Long adminId, Long reportId, ReportDecisionRequest request) {
+    public void resolve(
+            Long adminId,
+            Long reportId,
+            ReportDecisionRequest request,
+            String ipAddress
+    ) {
         AdminReportRow report = requireOpen(reportId);
         boolean hide = Boolean.TRUE.equals(request.hideTarget());
         boolean suspend = Boolean.TRUE.equals(request.suspendUser()) || ("USER".equals(report.targetType()) && hide);
@@ -65,15 +74,32 @@ public class AdminService {
         if (reportMapper.markProcessed(reportId, adminId, "RESOLVED", stored) == 0) {
             throw new AuthException(HttpStatus.CONFLICT, "이미 처리된 신고입니다.");
         }
+        logAction(adminId, "RESOLVE_REPORT", "REPORT", reportId, note(request.note()), ipAddress);
+        if (hide && "POST".equals(report.targetType())) {
+            logAction(adminId, "HIDE_POST", "POST", report.targetId(), note(request.note()), ipAddress);
+        }
+        if (hide && "COMMENT".equals(report.targetType())) {
+            logAction(adminId, "HIDE_COMMENT", "COMMENT", report.targetId(), note(request.note()), ipAddress);
+        }
+        if (suspend) {
+            logAction(adminId, "SUSPEND_USER", "USER", report.targetAuthorId(), note(request.note()), ipAddress);
+        }
     }
 
     @Transactional
-    public void reject(Long adminId, Long reportId, ReportDecisionRequest request) {
+    public void reject(
+            Long adminId,
+            Long reportId,
+            ReportDecisionRequest request,
+            String ipAddress
+    ) {
         AdminReportRow report = requireOpen(reportId);
         String stored = joinNote(targetName(report) + " 신고를 기각했습니다.", note(request.note()));
         if (reportMapper.markProcessed(reportId, adminId, "REJECTED", stored) == 0) {
             throw new AuthException(HttpStatus.CONFLICT, "이미 처리된 신고입니다.");
         }
+        logAction(adminId, "RESOLVE_REPORT", "REPORT", reportId,
+                note(request.note()) == null ? "신고 기각" : note(request.note()), ipAddress);
     }
 
     @Transactional(readOnly = true)
@@ -90,7 +116,12 @@ public class AdminService {
     }
 
     @Transactional
-    public void changeMemberStatus(Long adminId, Long userId, MemberStatusRequest request) {
+    public void changeMemberStatus(
+            Long adminId,
+            Long userId,
+            MemberStatusRequest request,
+            String ipAddress
+    ) {
         String next = request.status().trim().toUpperCase();
         if (!"ACTIVE".equals(next) && !"SUSPENDED".equals(next)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "변경할 상태를 선택해 주세요.");
@@ -102,14 +133,21 @@ public class AdminService {
         if (adminUserMapper.updateStatus(userId, next) == 0) {
             throw new AuthException(HttpStatus.CONFLICT, "회원 상태를 바꾸지 못했습니다.");
         }
+        if (UserStatus.SUSPENDED.name().equals(next)) {
+            userSessionService.invalidateAll(userId);
+        }
+        String actionType = UserStatus.SUSPENDED.name().equals(next)
+                ? "SUSPEND_USER"
+                : "UNSUSPEND_USER";
+        logAction(adminId, actionType, "USER", userId, note(request.note()), ipAddress);
     }
 
     @Transactional(readOnly = true)
     public LogFeedResponse logs(Integer requestedPage) {
-        PageWindow window = window(reportMapper.countProcessed(), requestedPage);
+        PageWindow window = window(adminActionLogMapper.countAll(), requestedPage);
         List<LogItem> logs = window.total() == 0
                 ? List.of()
-                : reportMapper.searchProcessed(window.limit(), window.offset()).stream()
+                : adminActionLogMapper.searchAll(window.limit(), window.offset()).stream()
                         .map(row -> new LogItem(row.logId(), row.adminNickname(), displaySummary(row),
                                 memoOnly(row.note()), row.createdAt(), row.status(), row.targetType(),
                                 row.targetId(),
@@ -150,6 +188,7 @@ public class AdminService {
         if (adminUserMapper.updateStatus(userId, UserStatus.SUSPENDED.name()) == 0) {
             throw new AuthException(HttpStatus.CONFLICT, "회원을 정지하지 못했습니다.");
         }
+        userSessionService.invalidateAll(userId);
         return user.getNickname();
     }
 
@@ -216,6 +255,35 @@ public class AdminService {
             case "COMMENT" -> "댓글";
             default -> "회원";
         };
+    }
+
+    private void logAction(
+            Long adminId,
+            String actionType,
+            String targetType,
+            Long targetId,
+            String reason,
+            String ipAddress
+    ) {
+        if (targetId == null) {
+            return;
+        }
+        adminActionLogMapper.insert(
+                adminId,
+                actionType,
+                targetType,
+                targetId,
+                reason,
+                trimIp(ipAddress)
+        );
+    }
+
+    private String trimIp(String ipAddress) {
+        String value = note(ipAddress);
+        if (value == null) {
+            return null;
+        }
+        return value.length() <= 45 ? value : value.substring(0, 45);
     }
 
     private ReportItem reportItem(AdminReportRow row) {

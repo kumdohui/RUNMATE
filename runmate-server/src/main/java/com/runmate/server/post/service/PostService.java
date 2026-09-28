@@ -60,17 +60,14 @@ public class PostService {
         if (!Boolean.TRUE.equals(category.getActive())) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "현재 사용할 수 없는 카테고리입니다.");
         }
-        if (RUNNING_VERIFICATION_CATEGORY.equals(category.getName()) && request.runningRecord() == null) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "러닝 인증 게시글에는 러닝 기록이 반드시 필요합니다.");
-        }
-
         PostStatus status = request.status() == null ? PostStatus.PUBLISHED : request.status();
         if (status != PostStatus.DRAFT && status != PostStatus.PUBLISHED) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "게시글은 임시저장 또는 공개 상태로만 작성할 수 있습니다.");
         }
+        validateRequest(category, request, status);
 
-        String title = request.title().trim();
-        String content = request.content().trim();
+        String title = trimToEmpty(request.title());
+        String content = trimToEmpty(request.content());
         String summary = createSummary(request.summary(), content);
         Post post = postMapper.saveAndFlush(
                 Post.create(authorId, category.getCategoryId(), title, summary, content, status));
@@ -94,13 +91,12 @@ public class PostService {
     ) {
         Post post = requireOwner(authorId, postId);
         Category category = requireCategory(request.categoryId());
-        validateRequest(category, request);
-
         PostStatus status = resolveStatus(request.status());
-        String content = request.content().trim();
+        validateRequest(category, request, status);
+        String content = trimToEmpty(request.content());
         post.update(
                 category.getCategoryId(),
-                request.title().trim(),
+                trimToEmpty(request.title()),
                 createSummary(request.summary(), content),
                 content,
                 status
@@ -273,7 +269,20 @@ public class PostService {
         return category;
     }
 
-    private void validateRequest(Category category, CreatePostRequest request) {
+    private void validateRequest(
+            Category category,
+            CreatePostRequest request,
+            PostStatus status
+    ) {
+        if (status == PostStatus.DRAFT) {
+            return;
+        }
+        if (trimToNull(request.title()) == null) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "제목을 입력해 주세요.");
+        }
+        if (trimToNull(request.content()) == null) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "본문을 입력해 주세요.");
+        }
         if (RUNNING_VERIFICATION_CATEGORY.equals(category.getName())
                 && request.runningRecord() == null) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "러닝 인증 게시글에는 러닝 기록이 반드시 필요합니다.");
@@ -334,6 +343,9 @@ public class PostService {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
-}
 
+    private String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+}
 

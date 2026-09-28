@@ -12,6 +12,8 @@ import com.runmate.server.notification.service.NotificationService;
 import com.runmate.server.post.mapper.CommentMapper;
 import com.runmate.server.post.mapper.PostMapper;
 import com.runmate.server.user.service.ProfileImageUrlResolver;
+import com.runmate.server.user.domain.UserStatus;
+import com.runmate.server.user.mapper.UserMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,7 @@ public class CommentService {
     private final PostMapper postMapper;
     private final ProfileImageUrlResolver profileImageUrlResolver;
     private final NotificationService notificationService;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public List<CommentResponse> list(Long viewerId, Long postId) {
@@ -117,6 +120,11 @@ public class CommentService {
         Post post = postMapper.findById(postId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
         if (post.getStatus() != PostStatus.PUBLISHED || post.getDeletedAt() != null) {
+            throw new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
+        }
+        if (userMapper.findById(post.getAuthorId())
+                .map(user -> user.getStatus() == UserStatus.SUSPENDED)
+                .orElse(false)) {
             throw new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
         }
         return post;

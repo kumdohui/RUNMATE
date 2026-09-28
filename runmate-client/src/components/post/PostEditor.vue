@@ -69,15 +69,16 @@ const totalDurationSeconds = computed(
     Number(form.durationMinutes || 0) * 60 +
     Number(form.durationSeconds || 0),
 )
+const runningRecordComplete = computed(
+  () => form.runningDate && Number(form.distanceKm) > 0 && totalDurationSeconds.value > 0,
+)
 const canSubmit = computed(
   () =>
     form.categoryId &&
-    form.title.trim() &&
-    form.content.trim() &&
-    (!includeRunning.value ||
-      (form.runningDate &&
-        Number(form.distanceKm) > 0 &&
-        totalDurationSeconds.value > 0)) &&
+    (form.status === 'DRAFT' ||
+      (form.title.trim() &&
+        form.content.trim() &&
+        (!includeRunning.value || runningRecordComplete.value))) &&
     !submitting.value,
 )
 
@@ -163,51 +164,49 @@ const submit = async () => {
   message.value = ''
   try {
     const csrfHeaders = await createCsrfHeaders()
-    const runningRecord = includeRunning.value
-      ? {
-          runningDate: form.runningDate,
-          distanceKm: Number(form.distanceKm),
-          durationSeconds: totalDurationSeconds.value,
-          locationName: form.locationName.trim() || null,
-          region: form.region.trim() || null,
-          intensity: form.intensity,
-          weather: form.weather.trim() || null,
-        }
-      : null
+    const runningRecord =
+      includeRunning.value && runningRecordComplete.value
+        ? {
+            runningDate: form.runningDate,
+            distanceKm: Number(form.distanceKm),
+            durationSeconds: totalDurationSeconds.value,
+            locationName: form.locationName.trim() || null,
+            region: form.region.trim() || null,
+            intensity: form.intensity,
+            weather: form.weather.trim() || null,
+          }
+        : null
     const postResponse = await fetch(
       editing.value ? `/api/posts/${props.postId}` : '/api/posts',
       {
-      method: editing.value ? 'PUT' : 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...csrfHeaders,
-      },
-      body: JSON.stringify({
-        categoryId: Number(form.categoryId),
-        title: form.title.trim(),
-        summary: null,
-        content: form.content.trim(),
-        runningRecord,
-        tags: form.tags
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-        status: form.status,
-      }),
+        method: editing.value ? 'PUT' : 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders,
+        },
+        body: JSON.stringify({
+          categoryId: Number(form.categoryId),
+          title: form.title.trim(),
+          summary: null,
+          content: form.content.trim(),
+          runningRecord,
+          tags: form.tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+          status: form.status,
+        }),
       },
     )
     const postBody = await readJson(postResponse, '게시글을 저장하지 못했습니다.')
 
     for (const imageId of removedImageIds.value) {
-      const response = await fetch(
-        `/api/posts/${postBody.postId}/images/${imageId}`,
-        {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: csrfHeaders,
-        },
-      )
+      const response = await fetch(`/api/posts/${postBody.postId}/images/${imageId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: csrfHeaders,
+      })
       if (!response.ok) throw new Error('기존 이미지를 삭제하지 못했습니다.')
     }
 
@@ -292,7 +291,7 @@ const submit = async () => {
             ><input
               v-model="form.title"
               maxlength="255"
-              required
+              :required="form.status === 'PUBLISHED'"
               placeholder="제목을 입력해 주세요"
           /></label>
           <label
@@ -300,7 +299,7 @@ const submit = async () => {
             ><textarea
               v-model="form.content"
               rows="8"
-              required
+              :required="form.status === 'PUBLISHED'"
               placeholder="오늘 달린 코스와 느낌을 기록해 주세요"
             ></textarea>
           </label>
@@ -332,7 +331,7 @@ const submit = async () => {
               ><input
                 v-model="form.runningDate"
                 type="date"
-                required /></label
+                :required="form.status === 'PUBLISHED'" /></label
             ><label
               ><span>거리</span>
               <div class="unit-input">
@@ -342,7 +341,7 @@ const submit = async () => {
                   min="0.001"
                   max="9999.999"
                   step="0.001"
-                  required
+                  :required="form.status === 'PUBLISHED'"
                 /><b>km</b>
               </div></label
             ><label class="duration-field"

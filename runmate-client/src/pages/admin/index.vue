@@ -17,6 +17,7 @@ const totalPages = ref(0)
 const selected = ref(null)
 const selectedLog = ref(null)
 const note = ref('')
+const statusNote = ref('')
 const saving = ref(false)
 const confirm = ref(null)
 
@@ -27,7 +28,7 @@ const reasons = {
   PRIVACY: '개인정보',
   OTHER: '기타',
 }
-const targets = { POST: '게시글', COMMENT: '댓글', USER: '회원' }
+const targets = { POST: '게시글', COMMENT: '댓글', USER: '회원', REPORT: '신고' }
 const memberStatus = { ACTIVE: '정상', SUSPENDED: '정지', DELETED: '탈퇴' }
 
 const dateTime = (value) => {
@@ -51,10 +52,15 @@ const loadReports = async (page = 0) => {
   loading.value = true
   message.value = ''
   try {
-    const response = await fetch(`/api/admin/reports?page=${page}`, { credentials: 'include' })
+    const response = await fetch(`/api/admin/reports?page=${page}`, {
+      credentials: 'include',
+    })
     const body = await readJson(response, '신고를 불러오지 못했습니다.')
     applyPage(body, reports, 'reports')
-    if (selected.value && !reports.value.some((report) => report.reportId === selected.value.reportId)) {
+    if (
+      selected.value &&
+      !reports.value.some((report) => report.reportId === selected.value.reportId)
+    ) {
       selected.value = null
     }
   } catch (error) {
@@ -84,7 +90,9 @@ const loadLogs = async (page = 0) => {
   loading.value = true
   message.value = ''
   try {
-    const response = await fetch(`/api/admin/logs?page=${page}`, { credentials: 'include' })
+    const response = await fetch(`/api/admin/logs?page=${page}`, {
+      credentials: 'include',
+    })
     const body = await readJson(response, '처리 이력을 불러오지 못했습니다.')
     applyPage(body, logs, 'logs')
   } catch (error) {
@@ -101,12 +109,20 @@ const load = (page = 0) => {
 }
 
 const targetLine = (report) => {
-  const code = report.targetType === 'COMMENT' ? 'C' : report.targetType === 'USER' ? 'U' : 'P'
+  const code =
+    report.targetType === 'COMMENT'
+      ? 'C'
+      : report.targetType === 'USER'
+        ? 'U'
+        : report.targetType === 'REPORT'
+          ? 'R'
+          : 'P'
   const name = targets[report.targetType] || '대상'
   return `${name} #${code}-${report.targetId} · ${report.targetLabel || '삭제된 대상'}`
 }
 
-const hideLabel = (report) => (report.targetType === 'COMMENT' ? '댓글 숨김' : '게시글 숨김')
+const hideLabel = (report) =>
+  report.targetType === 'COMMENT' ? '댓글 숨김' : '게시글 숨김'
 
 const selectTab = (next) => {
   if (tab.value === next) return
@@ -124,7 +140,11 @@ const openReport = (report) => {
 }
 
 const logActions = (log) => {
-  if (log.status === 'REJECTED') return ['기각']
+  if (log.status === 'REJECTED' || log.summary?.includes('기각')) return ['기각']
+  if (log.status === 'SUSPEND_USER') return ['회원 정지']
+  if (log.status === 'UNSUSPEND_USER') return ['정지 해제']
+  if (log.status === 'HIDE_POST') return ['게시글 숨김']
+  if (log.status === 'HIDE_COMMENT') return ['댓글 숨김']
   const actions = []
   if (log.summary?.includes('게시글을 숨')) actions.push('게시글 숨김')
   if (log.summary?.includes('댓글을 숨')) actions.push('댓글 숨김')
@@ -136,19 +156,22 @@ const decide = async (report, action) => {
   saving.value = true
   message.value = ''
   try {
-    const response = await fetch(`/api/admin/reports/${report.reportId}/${action === 'reject' ? 'reject' : 'resolve'}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(await createCsrfHeaders()),
+    const response = await fetch(
+      `/api/admin/reports/${report.reportId}/${action === 'reject' ? 'reject' : 'resolve'}`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await createCsrfHeaders()),
+        },
+        body: JSON.stringify({
+          note: note.value.trim(),
+          hideTarget: action === 'hide',
+          suspendUser: action === 'suspend',
+        }),
       },
-      body: JSON.stringify({
-        note: note.value.trim(),
-        hideTarget: action === 'hide',
-        suspendUser: action === 'suspend',
-      }),
-    })
+    )
     await readJson(response, '신고를 처리하지 못했습니다.')
     selected.value = null
     await loadReports(currentPage.value)
@@ -171,6 +194,7 @@ const askSanction = () => {
 
 const askStatus = (member) => {
   const lifting = member.status === 'SUSPENDED'
+  statusNote.value = ''
   confirm.value = {
     title: lifting ? '정지를 해제할까요?' : '이 회원을 정지할까요?',
     body: lifting
@@ -178,6 +202,7 @@ const askStatus = (member) => {
       : `${member.nickname} 계정이 정지됩니다. 회원 탭에서 다시 해제할 수 있습니다.`,
     ok: lifting ? '정지 해제' : '정지',
     tone: lifting ? 'safe' : 'danger',
+    requiresNote: true,
     run: () => changeStatus(member),
   }
 }
@@ -202,7 +227,7 @@ const changeStatus = async (member) => {
         'Content-Type': 'application/json',
         ...(await createCsrfHeaders()),
       },
-      body: JSON.stringify({ status: next, note: '' }),
+      body: JSON.stringify({ status: next, note: statusNote.value.trim() }),
     })
     await readJson(response, `회원을 ${label}하지 못했습니다.`)
     await loadMembers(currentPage.value)
@@ -241,7 +266,8 @@ onMounted(async () => {
         <NuxtLink
           class="course-home-link"
           to="/"
-        >홈으로</NuxtLink>
+          >홈으로</NuxtLink
+        >
       </div>
     </header>
     <main class="course-main admin-main">
@@ -290,9 +316,7 @@ onMounted(async () => {
             placeholder="닉네임 또는 아이디"
             aria-label="회원 검색"
           />
-          <button type="submit">
-            검색
-          </button>
+          <button type="submit">검색</button>
         </form>
 
         <p
@@ -325,7 +349,10 @@ onMounted(async () => {
             class="report-row"
             @click="openReport(report)"
           >
-            <strong>{{ targets[report.targetType] || '대상' }} · {{ reasons[report.reason] || report.reason }}</strong>
+            <strong
+              >{{ targets[report.targetType] || '대상' }} ·
+              {{ reasons[report.reason] || report.reason }}</strong
+            >
             <span>{{ report.targetLabel }}</span>
             <small>{{ dateTime(report.createdAt) }}</small>
           </button>
@@ -346,9 +373,17 @@ onMounted(async () => {
             :key="member.userId"
           >
             <strong>{{ member.nickname }}</strong>
-            <p>{{ member.loginId || '소셜 계정' }} · {{ memberStatus[member.status] || member.status }}</p>
-            <small>{{ member.role === 'ADMIN' ? '관리자' : '회원' }} · {{ dateTime(member.createdAt) }}</small>
-            <div v-if="member.role !== 'ADMIN' && member.userId !== authState.user?.userId">
+            <p>
+              {{ member.loginId || '소셜 계정' }} ·
+              {{ memberStatus[member.status] || member.status }}
+            </p>
+            <small
+              >{{ member.role === 'ADMIN' ? '관리자' : '회원' }} ·
+              {{ dateTime(member.createdAt) }}</small
+            >
+            <div
+              v-if="member.role !== 'ADMIN' && member.userId !== authState.user?.userId"
+            >
               <button
                 type="button"
                 :disabled="saving"
@@ -362,7 +397,7 @@ onMounted(async () => {
 
         <div v-else>
           <p class="admin-hint">
-            신고를 처리하거나 기각한 기록입니다. 항목을 누르면 상세 내용이 열립니다.
+            신고 처리와 회원 제재 기록입니다. 항목을 누르면 상세 내용이 열립니다.
           </p>
           <p
             v-if="!logs.length"
@@ -382,7 +417,10 @@ onMounted(async () => {
               @click="selectedLog = log"
             >
               <strong>{{ logActions(log).join(' · ') }}</strong>
-              <span>{{ log.targetNickname || '알 수 없는 회원' }} · {{ targetLine(log) }}</span>
+              <span
+                >{{ log.targetNickname || '알 수 없는 회원' }} ·
+                {{ targetLine(log) }}</span
+              >
               <small>{{ log.adminNickname }} · {{ dateTime(log.createdAt) }}</small>
             </button>
           </div>
@@ -425,7 +463,9 @@ onMounted(async () => {
           >
             <article class="report-card">
               <header>
-                <h2>신고 상세 <span>#R-{{ selected.reportId }}</span></h2>
+                <h2>
+                  신고 상세 <span>#R-{{ selected.reportId }}</span>
+                </h2>
                 <div class="report-card-tools">
                   <em>처리 대기</em>
                   <button
@@ -466,7 +506,7 @@ onMounted(async () => {
                 <button
                   type="button"
                   class="quiet"
-                  :disabled="saving"
+                  :disabled="saving || !note.trim()"
                   @click="decide(selected, 'reject')"
                 >
                   기각
@@ -475,7 +515,7 @@ onMounted(async () => {
                   v-if="selected.targetType !== 'USER'"
                   type="button"
                   class="hide"
-                  :disabled="saving"
+                  :disabled="saving || !note.trim()"
                   @click="decide(selected, 'hide')"
                 >
                   {{ hideLabel(selected) }}
@@ -483,7 +523,7 @@ onMounted(async () => {
                 <button
                   type="button"
                   class="sanction"
-                  :disabled="saving"
+                  :disabled="saving || !note.trim()"
                   @click="askSanction"
                 >
                   회원 제재
@@ -500,7 +540,14 @@ onMounted(async () => {
           >
             <article class="report-card">
               <header>
-                <h2>처리 상세 <span>#R-{{ selectedLog.logId }}</span></h2>
+                <h2>
+                  처리 상세
+                  <span>
+                    #{{ selectedLog.logId < 0 ? 'A' : 'R' }}-{{
+                      Math.abs(selectedLog.logId)
+                    }}
+                  </span>
+                </h2>
                 <div class="report-card-tools">
                   <em>{{ logActions(selectedLog).join(' · ') }}</em>
                   <button
@@ -513,21 +560,24 @@ onMounted(async () => {
                 </div>
               </header>
               <div>
-                <span>{{ selectedLog.summary?.includes('정지') ? '정지 회원' : '대상 회원' }}</span>
+                <span>{{
+                  selectedLog.summary?.includes('정지') ? '정지 회원' : '대상 회원'
+                }}</span>
                 <strong>{{ selectedLog.targetNickname || '알 수 없는 회원' }}</strong>
                 <p v-if="selectedLog.targetStatus">
-                  현재 {{ memberStatus[selectedLog.targetStatus] || selectedLog.targetStatus }}
+                  현재
+                  {{ memberStatus[selectedLog.targetStatus] || selectedLog.targetStatus }}
                 </p>
               </div>
               <div>
-                <span>신고 대상</span>
+                <span>처리 대상</span>
                 <strong>{{ targetLine(selectedLog) }}</strong>
               </div>
-              <div>
+              <div v-if="selectedLog.reporterNickname">
                 <span>신고한 회원</span>
-                <strong>{{ selectedLog.reporterNickname || '알 수 없는 회원' }}</strong>
+                <strong>{{ selectedLog.reporterNickname }}</strong>
               </div>
-              <div>
+              <div v-if="selectedLog.reason">
                 <span>신고 사유</span>
                 <strong>{{ reasons[selectedLog.reason] || selectedLog.reason }}</strong>
                 <p v-if="selectedLog.detail">
@@ -557,6 +607,14 @@ onMounted(async () => {
             <article class="report-card confirm-card">
               <h2>{{ confirm.title }}</h2>
               <p>{{ confirm.body }}</p>
+              <label v-if="confirm.requiresNote">
+                처리 메모
+                <textarea
+                  v-model="statusNote"
+                  maxlength="1000"
+                  placeholder="정지 또는 해제 사유를 기록합니다"
+                ></textarea>
+              </label>
               <div class="report-actions">
                 <button
                   type="button"
@@ -568,7 +626,7 @@ onMounted(async () => {
                 <button
                   type="button"
                   :class="confirm.tone === 'danger' ? 'sanction' : 'hide'"
-                  :disabled="saving"
+                  :disabled="saving || (confirm.requiresNote && !statusNote.trim())"
                   @click="runConfirm"
                 >
                   {{ confirm.ok }}

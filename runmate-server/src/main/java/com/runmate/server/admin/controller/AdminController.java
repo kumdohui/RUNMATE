@@ -9,6 +9,7 @@ import com.runmate.server.admin.service.AdminService;
 import com.runmate.server.auth.exception.AuthException;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,9 +37,15 @@ public class AdminController {
     public ResponseEntity<Void> resolve(
             @PathVariable Long reportId,
             @Valid @RequestBody ReportDecisionRequest request,
-            Authentication authentication
+            Authentication authentication,
+            HttpServletRequest servletRequest
     ) {
-        adminService.resolve(principal(authentication).userId(), reportId, request);
+        adminService.resolve(
+                principal(authentication).userId(),
+                reportId,
+                request,
+                clientIp(servletRequest)
+        );
         return ResponseEntity.noContent().build();
     }
 
@@ -46,9 +53,15 @@ public class AdminController {
     public ResponseEntity<Void> reject(
             @PathVariable Long reportId,
             @Valid @RequestBody ReportDecisionRequest request,
-            Authentication authentication
+            Authentication authentication,
+            HttpServletRequest servletRequest
     ) {
-        adminService.reject(principal(authentication).userId(), reportId, request);
+        adminService.reject(
+                principal(authentication).userId(),
+                reportId,
+                request,
+                clientIp(servletRequest)
+        );
         return ResponseEntity.noContent().build();
     }
 
@@ -66,9 +79,15 @@ public class AdminController {
     public ResponseEntity<Void> changeStatus(
             @PathVariable Long userId,
             @Valid @RequestBody MemberStatusRequest request,
-            Authentication authentication
+            Authentication authentication,
+            HttpServletRequest servletRequest
     ) {
-        adminService.changeMemberStatus(principal(authentication).userId(), userId, request);
+        adminService.changeMemberStatus(
+                principal(authentication).userId(),
+                userId,
+                request,
+                clientIp(servletRequest)
+        );
         return ResponseEntity.noContent().build();
     }
 
@@ -83,5 +102,9 @@ public class AdminController {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
         return principal;
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        return request.getRemoteAddr();
     }
 }

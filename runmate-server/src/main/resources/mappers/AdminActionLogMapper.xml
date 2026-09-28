@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.admin.mapper.AdminActionLogMapper">
+    <insert id="insert">
+        INSERT INTO admin_action_logs (
+            admin_id,
+            action_type,
+            target_type,
+            target_id,
+            reason,
+            ip_address,
+            created_at
+        ) VALUES (
+            #{adminId},
+            #{actionType},
+            #{targetType},
+            #{targetId},
+            #{reason},
+            #{ipAddress},
+            NOW()
+        )
+    </insert>
+
+    <select id="countAll" resultType="long">
+        SELECT
+            (SELECT COUNT(*) FROM admin_action_logs)
+            +
+            (SELECT COUNT(*)
+               FROM reports r
+              WHERE r.status IN ('RESOLVED', 'REJECTED')
+                AND NOT EXISTS (
+                    SELECT 1
+                      FROM admin_action_logs action_log
+                     WHERE action_log.action_type = 'RESOLVE_REPORT'
+                       AND action_log.target_type = 'REPORT'
+                       AND action_log.target_id = r.report_id
+                ))
+    </select>
+
+    <select id="searchAll" resultType="com.runmate.server.admin.dto.AdminLogRow">
+        SELECT logs.*
+          FROM (
+            SELECT -action_log.admin_action_id AS log_id,
+                   admin.nickname AS admin_nickname,
+                   CASE action_log.action_type
+                       WHEN 'SUSPEND_USER' THEN CONCAT(target_user.nickname, ' 회원을 정지했습니다.')
+                       WHEN 'UNSUSPEND_USER' THEN CONCAT(target_user.nickname, ' 회원의 정지를 해제했습니다.')
+                       WHEN 'HIDE_POST' THEN '게시글을 숨겼습니다.'
+                       WHEN 'HIDE_COMMENT' THEN '댓글을 숨겼습니다.'
+                       WHEN 'RESOLVE_REPORT' THEN
+                           CASE
+                               WHEN action_log.reason = '신고 기각' THEN '신고를 기각했습니다.'
+                               ELSE '신고를 처리했습니다.'
+                           END
+                       ELSE '관리자 작업을 처리했습니다.'
+                   END AS summary,
+                   action_log.reason AS note,
+                   action_log.created_at,
+                   action_log.action_type AS status,
+                   action_log.target_type,
+                   action_log.target_id,
+                   CASE action_log.target_type
+                       WHEN 'POST' THEN target_post.title
+                       WHEN 'COMMENT' THEN LEFT(target_comment.content, 80)
+                       WHEN 'USER' THEN target_user.nickname
+                       WHEN 'REPORT' THEN CONCAT('신고 #', action_log.target_id)
+                       ELSE CONCAT(action_log.target_type, ' #', action_log.target_id)
+                   END AS target_label,
+                   CASE
+                       WHEN action_log.target_type = 'REPORT' THEN target_report.reason
+                       ELSE NULL
+                   END AS reason,
+                   target_report.detail,
+                   reporter.nickname AS reporter_nickname,
+                   CASE action_log.target_type
+                       WHEN 'USER' THEN target_user.nickname
+                       WHEN 'POST' THEN post_author.nickname
+                       WHEN 'COMMENT' THEN comment_author.nickname
+                       WHEN 'REPORT' THEN
+                           CASE target_report.target_type
+                               WHEN 'POST' THEN (
+                                   SELECT author.nickname
+                                     FROM posts p
+                                     JOIN users author ON author.user_id = p.author_id
+                                    WHERE p.post_id = target_report.target_id
+                               )
+                               WHEN 'COMMENT' THEN (
+                                   SELECT author.nickname
+                                     FROM comments c
+                                     JOIN users author ON author.user_id = c.author_id
+                                    WHERE c.comment_id = target_report.target_id
+                               )
+                               ELSE (SELECT nickname FROM users WHERE user_id = target_report.target_id)
+                           END
+                       ELSE NULL
+                   END AS target_nickname,
+                   CASE action_log.target_type
+                       WHEN 'USER' THEN target_user.status
+                       WHEN 'POST' THEN post_author.status
+                       WHEN 'COMMENT' THEN comment_author.status
+                       WHEN 'REPORT' THEN
+                           CASE target_report.target_type
+                               WHEN 'POST' THEN (
+                                   SELECT author.status
+                                     FROM posts p
+                                     JOIN users author ON author.user_id = p.author_id
+                                    WHERE p.post_id = target_report.target_id
+                               )
+                               WHEN 'COMMENT' THEN (
+                                   SELECT author.status
+                                     FROM comments c
+                                     JOIN users author ON author.user_id = c.author_id
+                                    WHERE c.comment_id = target_report.target_id
+                               )
+                               ELSE (SELECT status FROM users WHERE user_id = target_report.target_id)
+                           END
+                       ELSE NULL
+                   END AS target_status
+              FROM admin_action_logs action_log
+              JOIN users admin ON admin.user_id = action_log.admin_id
+              LEFT JOIN users target_user
+                ON action_log.target_type = 'USER'
+               AND target_user.user_id = action_log.target_id
+              LEFT JOIN posts target_post
+                ON action_log.target_type = 'POST'
+               AND target_post.post_id = action_log.target_id
+              LEFT JOIN comments target_comment
+                ON action_log.target_type = 'COMMENT'
+               AND target_comment.comment_id = action_log.target_id
+              LEFT JOIN users post_author ON post_author.user_id = target_post.author_id
+              LEFT JOIN users comment_author ON comment_author.user_id = target_comment.author_id
+              LEFT JOIN reports target_report
+                ON action_log.target_type = 'REPORT'
+               AND target_report.report_id = action_log.target_id
+              LEFT JOIN users reporter ON reporter.user_id = target_report.reporter_id
+
+            UNION ALL
+
+            SELECT r.report_id AS log_id,
+                   admin.nickname AS admin_nickname,
+                   COALESCE(r.process_note, '신고를 처리했습니다.') AS summary,
+                   r.process_note AS note,
+                   r.processed_at AS created_at,
+                   r.status,
+                   r.target_type,
+                   r.target_id,
+                   CASE r.target_type
+                       WHEN 'POST' THEN (SELECT title FROM posts WHERE post_id = r.target_id)
+                       WHEN 'COMMENT' THEN (SELECT LEFT(content, 80) FROM comments WHERE comment_id = r.target_id)
+                       ELSE (SELECT nickname FROM users WHERE user_id = r.target_id)
+                   END AS target_label,
+                   r.reason,
+                   r.detail,
+                   reporter.nickname AS reporter_nickname,
+                   CASE r.target_type
+                       WHEN 'POST' THEN (
+                           SELECT author.nickname
+                             FROM posts p
+                             JOIN users author ON author.user_id = p.author_id
+                            WHERE p.post_id = r.target_id
+                       )
+                       WHEN 'COMMENT' THEN (
+                           SELECT author.nickname
+                             FROM comments c
+                             JOIN users author ON author.user_id = c.author_id
+                            WHERE c.comment_id = r.target_id
+                       )
+                       ELSE (SELECT nickname FROM users WHERE user_id = r.target_id)
+                   END AS target_nickname,
+                   CASE r.target_type
+                       WHEN 'POST' THEN (
+                           SELECT author.status
+                             FROM posts p
+                             JOIN users author ON author.user_id = p.author_id
+                            WHERE p.post_id = r.target_id
+                       )
+                       WHEN 'COMMENT' THEN (
+                           SELECT author.status
+                             FROM comments c
+                             JOIN users author ON author.user_id = c.author_id
+                            WHERE c.comment_id = r.target_id
+                       )
+                       ELSE (SELECT status FROM users WHERE user_id = r.target_id)
+                   END AS target_status
+              FROM reports r
+              JOIN users admin ON admin.user_id = r.processed_by
+              JOIN users reporter ON reporter.user_id = r.reporter_id
+             WHERE r.status IN ('RESOLVED', 'REJECTED')
+               AND NOT EXISTS (
+                   SELECT 1
+                     FROM admin_action_logs action_log
+                    WHERE action_log.action_type = 'RESOLVE_REPORT'
+                      AND action_log.target_type = 'REPORT'
+                      AND action_log.target_id = r.report_id
+               )
+          ) logs
+         ORDER BY logs.created_at DESC, logs.log_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

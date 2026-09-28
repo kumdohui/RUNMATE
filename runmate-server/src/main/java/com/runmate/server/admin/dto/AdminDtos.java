@@ -10,6 +10,7 @@ public final class AdminDtos {
     }
 
     public record ReportDecisionRequest(
+            @NotBlank(message = "처리 메모를 입력해 주세요.")
             @Size(max = 1000, message = "메모는 1000자 이하로 입력해 주세요.") String note,
             Boolean hideTarget,
             Boolean suspendUser
@@ -18,6 +19,7 @@ public final class AdminDtos {
 
     public record MemberStatusRequest(
             @NotBlank(message = "변경할 상태를 선택해 주세요.") String status,
+            @NotBlank(message = "처리 메모를 입력해 주세요.")
             @Size(max = 1000, message = "메모는 1000자 이하로 입력해 주세요.") String note
     ) {
     }
