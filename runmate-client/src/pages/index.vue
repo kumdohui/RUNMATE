@@ -103,7 +103,7 @@ onMounted(loadHomeSummary)
             class="home-write"
             to="/posts/new"
             ><span aria-hidden="true">＋</span> 글쓰기</RouterLink
-          ><RouterLink
+          ><NotificationBell /><RouterLink
             class="member-name"
             to="/profile"
             ><span class="member-avatar"

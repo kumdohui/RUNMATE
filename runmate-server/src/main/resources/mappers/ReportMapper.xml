@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.report.mapper.ReportMapper">
+    <insert id="insert">
+        INSERT INTO reports (reporter_id, target_type, target_id, reason, detail, status, created_at)
+        VALUES (#{reporterId}, #{targetType}, #{targetId}, #{reason}, #{detail}, 'PENDING', NOW())
+    </insert>
+
+    <select id="existsOpen" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+              FROM reports
+             WHERE reporter_id = #{reporterId}
+               AND target_type = #{targetType}
+               AND target_id = #{targetId}
+               AND status IN ('PENDING', 'REVIEWING')
+        )
+    </select>
+</mapper>

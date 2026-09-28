@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.notification.mapper.NotificationMapper">
+    <insert id="insert">
+        INSERT INTO notifications (recipient_id, actor_id, type, post_id, comment_id, is_read, created_at)
+        VALUES (#{recipientId}, #{actorId}, #{type}, #{postId}, #{commentId}, 0, NOW())
+    </insert>
+
+    <select id="countByRecipient" resultType="long">
+        SELECT COUNT(*)
+          FROM notifications
+         WHERE recipient_id = #{recipientId}
+    </select>
+
+    <select id="countUnread" resultType="long">
+        SELECT COUNT(*)
+          FROM notifications
+         WHERE recipient_id = #{recipientId}
+           AND is_read = 0
+    </select>
+
+    <select id="searchByRecipient" resultType="com.runmate.server.notification.dto.NotificationRow">
+        SELECT n.notification_id,
+               n.type,
+               n.actor_id,
+               CASE WHEN u.status = 'DELETED' THEN '탈퇴한 사용자' ELSE u.nickname END AS actor_nickname,
+               n.post_id,
+               p.title AS post_title,
+               n.comment_id,
+               n.is_read AS `read`,
+               n.created_at
+          FROM notifications n
+          JOIN users u ON u.user_id = n.actor_id
+          LEFT JOIN posts p ON p.post_id = n.post_id
+         WHERE n.recipient_id = #{recipientId}
+         ORDER BY n.created_at DESC, n.notification_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <update id="markRead">
+        UPDATE notifications
+           SET is_read = 1,
+               read_at = NOW()
+         WHERE notification_id = #{notificationId}
+           AND recipient_id = #{recipientId}
+           AND is_read = 0
+    </update>
+
+    <update id="markAllRead">
+        UPDATE notifications
+           SET is_read = 1,
+               read_at = NOW()
+         WHERE recipient_id = #{recipientId}
+           AND is_read = 0
+    </update>
+</mapper>

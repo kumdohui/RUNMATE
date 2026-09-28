@@ -78,21 +78,44 @@ export const usePostSearch = () => {
     }
   }
 
+  const hasCondition = () =>
+    Boolean(
+      filters.keyword.trim() ||
+        filters.categoryId ||
+        filters.region ||
+        filters.distanceRange ||
+        filters.tag.trim(),
+    )
+
+  const clearResults = () => {
+    posts.value = []
+    currentPage.value = 0
+    totalPages.value = 0
+    totalElements.value = 0
+  }
+
   const search = async () => {
     if (filters.keyword.trim() && filters.keyword.trim().length < 2) {
       message.value = '검색어는 두 글자 이상 입력해 주세요.'
       searched.value = false
-      posts.value = []
+      clearResults()
+      return
+    }
+    if (!hasCondition()) {
+      message.value = ''
+      searched.value = false
+      clearResults()
       return
     }
     searched.value = true
     await loadPosts(0)
   }
 
-  const reset = async () => {
+  const reset = () => {
     Object.assign(filters, initialFilters())
-    searched.value = true
-    await loadPosts(0)
+    searched.value = false
+    clearResults()
+    message.value = ''
   }
 
   const movePage = async (page) => {

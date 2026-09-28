@@ -315,12 +315,15 @@ const deletePost = async () => {
         class="home-brand"
         to="/"
         ><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink
-      ><button
-        type="button"
-        @click="goToList"
-      >
-        목록으로
-      </button>
+      ><div class="write-header-actions">
+        <NotificationBell />
+        <button
+          type="button"
+          @click="goToList"
+        >
+          목록으로
+        </button>
+      </div>
     </header>
     <main class="detail-main">
       <p
@@ -343,6 +346,16 @@ const deletePost = async () => {
             <b>{{ post.authorNickname }}</b
             ><time>{{ dateTime(post.publishedAt || post.createdAt) }}</time
             ><em v-if="post.status === 'DRAFT'">임시저장</em>
+          </div>
+          <div
+            v-if="!post.owner"
+            class="detail-owner-actions"
+          >
+            <ReportButton
+              target-type="POST"
+              :target-id="post.postId"
+              :user-id="post.authorId"
+            />
           </div>
           <details
             v-if="post.owner"
@@ -546,6 +559,12 @@ const deletePost = async () => {
                 >
                   답글
                 </button>
+                <ReportButton
+                  v-if="!comment.owner"
+                  target-type="COMMENT"
+                  :target-id="comment.commentId"
+                  label="신고"
+                />
                 <details
                   v-if="comment.owner"
                   class="detail-comment-menu"
@@ -603,6 +622,12 @@ const deletePost = async () => {
                   <strong>{{ reply.authorNickname }}</strong>
                   <time>{{ dateTime(reply.createdAt) }}</time>
                 </div>
+                <ReportButton
+                  v-if="!reply.owner"
+                  target-type="COMMENT"
+                  :target-id="reply.commentId"
+                  label="신고"
+                />
                 <details
                   v-if="reply.owner"
                   class="detail-comment-menu"

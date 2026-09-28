@@ -560,6 +560,186 @@ a {
   align-items: center;
   gap: 10px;
 }
+.notify-wrap {
+  position: relative;
+}
+.notify-wrap.open {
+  z-index: 40;
+}
+.notify-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: default;
+}
+.notify-link {
+  position: relative;
+  z-index: 2;
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #173427;
+  background: #fff;
+  border: 1px solid #d6e0d9;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.notify-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 2;
+  width: 320px;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #dce7e0;
+  border-radius: 16px;
+  box-shadow: 0 14px 36px rgb(16 61 43 / 14%);
+}
+.notify-panel p {
+  margin: 8px;
+  color: #718078;
+  font-size: 13px;
+}
+.notify-panel > button {
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  color: #173427;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+}
+.notify-panel > button.unread {
+  background: #f3f8f5;
+}
+.notify-panel strong {
+  font-size: 13px;
+}
+.notify-panel span {
+  color: #718078;
+  font-size: 12px;
+}
+.notify-panel a {
+  padding: 10px;
+  color: #176844;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+.notify-link b {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #176844;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.report-open {
+  height: 36px;
+  padding: 0 14px;
+  color: #8a4b3a;
+  background: #fff;
+  border: 1px solid #eadfd8;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.report-open--quiet {
+  height: auto;
+  padding: 6px 8px;
+  color: #6d7b74;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.report-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(16 40 28 / 35%);
+}
+.report-dialog {
+  width: min(420px, 100%);
+  padding: 22px;
+  display: grid;
+  gap: 12px;
+  background: #fff;
+  border-radius: 18px;
+}
+.report-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.report-dialog label {
+  display: grid;
+  gap: 6px;
+  color: #5f6d66;
+  font-size: 13px;
+  font-weight: 700;
+}
+.report-dialog select,
+.report-dialog textarea {
+  width: 100%;
+  padding: 10px 12px;
+  color: #173427;
+  background: #fff;
+  border: 1px solid #d7e3dc;
+  border-radius: 10px;
+  font: inherit;
+}
+.report-dialog > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.report-dialog > div button {
+  height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.report-dialog > div button[type='button'] {
+  color: #5f6d66;
+  background: #f3f6f4;
+}
+.report-dialog > div button[type='submit'] {
+  color: #fff;
+  background: #176844;
+}
+.report-error {
+  margin: 0;
+  color: #a74332;
+  font-size: 13px;
+}
 .home-login,
 .home-signup {
   padding: 11px 21px;
@@ -2235,7 +2415,12 @@ a {
   background: #fff;
   border-bottom: 1px solid #e0e8e3;
 }
-.write-header > button {
+.write-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.write-header-actions > button {
   padding: 9px 15px;
   color: #5e6d65;
   background: #f3f6f4;

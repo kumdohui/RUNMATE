@@ -8,6 +8,7 @@ import com.runmate.server.post.dto.CommentRequest;
 import com.runmate.server.post.dto.CommentResponse;
 import com.runmate.server.post.dto.CommentRow;
 import com.runmate.server.post.dto.MyCommentResponse;
+import com.runmate.server.notification.service.NotificationService;
 import com.runmate.server.post.mapper.CommentMapper;
 import com.runmate.server.post.mapper.PostMapper;
 import com.runmate.server.user.service.ProfileImageUrlResolver;
@@ -25,6 +26,7 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final PostMapper postMapper;
     private final ProfileImageUrlResolver profileImageUrlResolver;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<CommentResponse> list(Long viewerId, Long postId) {
@@ -36,11 +38,12 @@ public class CommentService {
 
     @Transactional
     public CommentResponse add(Long userId, Long postId, CommentRequest request) {
-        requirePublished(postId);
+        Post post = requirePublished(postId);
         Long parentId = request.parentCommentId();
         Long replyToUserId = null;
+        Comment parent = null;
         if (parentId != null) {
-            Comment parent = requireLive(parentId);
+            parent = requireLive(parentId);
             if (!parent.getPostId().equals(postId)) {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "이 게시글의 댓글에만 답글을 달 수 있습니다.");
             }
@@ -51,6 +54,7 @@ public class CommentService {
         }
         Comment comment = Comment.create(postId, userId, parentId, replyToUserId, request.content().trim());
         commentMapper.insert(comment);
+        notificationService.addForComment(userId, post.getAuthorId(), parent, postId, comment.getCommentId());
         return toResponse(requireRow(comment.getCommentId()), userId);
     }
 
@@ -109,12 +113,13 @@ public class CommentService {
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."));
     }
 
-    private void requirePublished(Long postId) {
+    private Post requirePublished(Long postId) {
         Post post = postMapper.findById(postId)
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
         if (post.getStatus() != PostStatus.PUBLISHED || post.getDeletedAt() != null) {
             throw new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
         }
+        return post;
     }
 
     private CommentResponse toResponse(CommentRow row, Long viewerId) {

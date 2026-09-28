@@ -12,6 +12,7 @@ const {
   totalPages,
   totalElements,
   loading,
+  searched,
   message,
   filters,
   loadCategories,
@@ -20,10 +21,7 @@ const {
   movePage,
 } = usePostSearch()
 
-onMounted(async () => {
-  await loadCategories()
-  await search()
-})
+onMounted(loadCategories)
 </script>
 
 <template>
@@ -37,11 +35,13 @@ onMounted(async () => {
           <span class="brand-mark">R</span>
           <span>RUNMATE</span>
         </NuxtLink>
-        <NuxtLink
-          class="course-home-link"
-          to="/"
-          >홈으로</NuxtLink
-        >
+        <div class="course-nav-actions">
+          <NotificationBell />
+          <NuxtLink
+            class="course-home-link"
+            to="/"
+          >홈으로</NuxtLink>
+        </div>
       </div>
     </header>
 
@@ -75,6 +75,16 @@ onMounted(async () => {
           aria-hidden="true"
         ></span>
         <p>게시글을 찾고 있어요.</p>
+      </div>
+      <div
+        v-else-if="!searched"
+        class="course-message"
+      >
+        <span aria-hidden="true">⌕</span>
+        <p>
+          <strong>검색 조건을 입력해 주세요.</strong>
+          <small>검색어, 카테고리, 지역, 거리, 태그 중 하나를 고른 뒤 검색해 주세요.</small>
+        </p>
       </div>
       <div
         v-else-if="!posts.length"

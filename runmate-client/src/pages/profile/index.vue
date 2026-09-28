@@ -158,10 +158,13 @@ onMounted(() => load(0))
           <span class="brand-mark">R</span>
           <span>RUNMATE</span>
         </NuxtLink>
-        <NuxtLink
-          class="course-home-link"
-          to="/"
-        >홈으로</NuxtLink>
+        <div class="course-nav-actions">
+          <NotificationBell />
+          <NuxtLink
+            class="course-home-link"
+            to="/"
+          >홈으로</NuxtLink>
+        </div>
       </div>
     </header>
 
