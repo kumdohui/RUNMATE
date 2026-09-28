@@ -82,7 +82,8 @@ public class CourseService {
                 row.locationName(),
                 row.region(),
                 row.likeCount(),
-                row.commentCount()
+                row.commentCount(),
+                row.authorId()
         );
     }
 

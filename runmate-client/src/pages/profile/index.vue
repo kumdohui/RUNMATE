@@ -159,6 +159,7 @@ onMounted(() => load(0))
           <span>RUNMATE</span>
         </NuxtLink>
         <div class="course-nav-actions">
+          <AdminLink />
           <NotificationBell />
           <NuxtLink
             class="course-home-link"
@@ -364,7 +365,15 @@ onMounted(() => load(0))
           >
             이전
           </button>
-          <span>{{ feed.currentPage + 1 }} / {{ feed.totalPages }}</span>
+          <button
+            v-for="page in feed.totalPages"
+            :key="page"
+            type="button"
+            :class="{ active: feed.currentPage === page - 1 }"
+            @click="turnPage(page - 1)"
+          >
+            {{ page }}
+          </button>
           <button
             type="button"
             :disabled="feed.currentPage >= feed.totalPages - 1"
@@ -439,7 +448,12 @@ onMounted(() => load(0))
   font-weight: 800;
 }
 .activity-avatar img {
+  display: block;
   object-fit: cover;
+}
+.activity-avatar span {
+  display: grid;
+  place-items: center;
 }
 .activity-profile h2 {
   margin: 0 0 6px;

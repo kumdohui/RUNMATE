@@ -117,6 +117,7 @@ public class SignupService {
 
         emailVerification.consume(now);
         phoneVerification.consume(now);
+        phoneVerificationMapper.update(phoneVerification);
 
         return new SignupResponse(savedUser.getUserId(), existingUser.isPresent());
     }

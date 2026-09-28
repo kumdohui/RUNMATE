@@ -103,7 +103,7 @@ onMounted(loadHomeSummary)
             class="home-write"
             to="/posts/new"
             ><span aria-hidden="true">＋</span> 글쓰기</RouterLink
-          ><NotificationBell /><RouterLink
+          ><AdminLink /><NotificationBell /><RouterLink
             class="member-name"
             to="/profile"
             ><span class="member-avatar"
@@ -263,7 +263,7 @@ onMounted(loadHomeSummary)
                 <span
                   ><b>{{ course.distanceLabel }}</b> 거리</span
                 ><span
-                  ><b>{{ course.timeLabel }}</b> 소요 시간</span
+                  ><b>{{ course.timeLabel || '-' }}</b> 소요 시간</span
                 ><RouterLink
                   :to="`/posts/${course.postId}`"
                   :aria-label="`${course.title} 열기`"
@@ -311,32 +311,41 @@ onMounted(loadHomeSummary)
           </div>
         </div>
         <div class="feed-grid">
-          <RouterLink
+          <article
             v-for="post in recentPosts"
             :key="post.postId"
             class="feed-card"
-            :to="`/posts/${post.postId}`"
           >
-            <div class="feed-image">
-              <img
-                :src="post.imageUrl"
-                :alt="post.imageUrl ? post.title : `${post.categoryName} 기본 이미지`"
-              /><span>{{ post.categoryName }}</span>
-            </div>
-            <div class="feed-body">
-              <h3>{{ post.title }}</h3>
-              <p>{{ post.summary }}</p>
-              <div class="feed-metrics">
-                <b v-if="post.distanceLabel">{{ post.distanceLabel }}</b
-                ><b v-if="post.timeLabel">{{ post.timeLabel }}</b
-                ><b v-if="post.paceLabel">{{ post.paceLabel }}</b>
+            <RouterLink
+              class="feed-card-link"
+              :to="`/posts/${post.postId}`"
+            >
+              <div class="feed-image">
+                <img
+                  :src="post.imageUrl"
+                  :alt="post.imageUrl ? post.title : `${post.categoryName} 기본 이미지`"
+                /><span>{{ post.categoryName }}</span>
               </div>
-              <small
-                >{{ post.authorNickname }} · ♡ {{ post.likeCount }} · 댓글
-                {{ post.commentCount }}</small
-              >
-            </div>
-          </RouterLink>
+              <div class="feed-body">
+                <h3>{{ post.title }}</h3>
+                <p>{{ post.summary }}</p>
+                <div class="feed-metrics">
+                  <b v-if="post.distanceLabel">{{ post.distanceLabel }}</b
+                  ><b v-if="post.timeLabel">{{ post.timeLabel }}</b
+                  ><b v-if="post.paceLabel">{{ post.paceLabel }}</b>
+                </div>
+              </div>
+            </RouterLink>
+            <small class="feed-byline">
+              <NuxtLink
+                v-if="post.authorId"
+                class="detail-author"
+                :to="`/users/${post.authorId}`"
+              >{{ post.authorNickname }}</NuxtLink>
+              <template v-else>{{ post.authorNickname }}</template>
+              · ♡ {{ post.likeCount }} · 댓글 {{ post.commentCount }}
+            </small>
+          </article>
         </div>
         <nav
           v-if="totalPages > 1"

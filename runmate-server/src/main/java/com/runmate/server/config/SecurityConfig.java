@@ -59,6 +59,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/reaction").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/{userId:\\d+}", "/api/users/{userId:\\d+}/posts").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())

@@ -9,6 +9,7 @@ import com.runmate.server.post.mapper.PostMapper;
 import com.runmate.server.report.dto.ReportRequest;
 import com.runmate.server.report.mapper.ReportMapper;
 import com.runmate.server.user.domain.User;
+import com.runmate.server.user.domain.UserRole;
 import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.mapper.UserMapper;
 import java.util.Set;
@@ -59,6 +60,7 @@ public class ReportService {
             if (post.getAuthorId().equals(reporterId)) {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "본인 게시글은 신고할 수 없습니다.");
             }
+            rejectAdminTarget(post.getAuthorId());
             return;
         }
         if ("COMMENT".equals(targetType)) {
@@ -70,6 +72,7 @@ public class ReportService {
             if (comment.getAuthorId().equals(reporterId)) {
                 throw new AuthException(HttpStatus.BAD_REQUEST, "본인 댓글은 신고할 수 없습니다.");
             }
+            rejectAdminTarget(comment.getAuthorId());
             return;
         }
         User user = userMapper.findById(targetId)
@@ -79,6 +82,16 @@ public class ReportService {
         }
         if (user.getUserId().equals(reporterId)) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "본인은 신고할 수 없습니다.");
+        }
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "관리자 계정은 신고할 수 없습니다.");
+        }
+    }
+
+    private void rejectAdminTarget(Long authorId) {
+        User author = userMapper.findById(authorId).orElse(null);
+        if (author != null && author.getRole() == UserRole.ADMIN) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "관리자 계정은 신고할 수 없습니다.");
         }
     }
 }

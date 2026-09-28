@@ -58,6 +58,7 @@ public class NaverSignupService {
         agreementMapper.saveAll(terms.stream()
                 .map(term -> UserTermAgreement.createAgreement(user, term, ipAddress, userAgent)).toList());
         verification.consume(now);
+        phoneVerificationMapper.update(verification);
         user.recordLoginSuccess(now);
         return new RunmatePrincipal(user.getUserId(), user.getLoginId(), user.getNickname(),
                 user.getRole().name(), profileImageUrlResolver.resolve(user, profile.profileImageUrl()));

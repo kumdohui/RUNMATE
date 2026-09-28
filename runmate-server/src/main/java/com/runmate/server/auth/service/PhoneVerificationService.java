@@ -167,10 +167,12 @@ public class PhoneVerificationService {
         }
         if (!passwordEncoder.matches(code, verification.getCodeHash())) {
             verification.recordFailedAttempt();
+            phoneVerificationMapper.update(verification);
             throw new AuthException("인증번호가 올바르지 않습니다.");
         }
 
         verification.verify(now);
+        phoneVerificationMapper.update(verification);
         return accountAwareResponse(verification);
     }
 

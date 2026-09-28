@@ -4,7 +4,7 @@ export const formatDistance = (value) => {
 }
 
 export const formatDuration = (totalSeconds) => {
-  if (!totalSeconds) return '-'
+  if (!totalSeconds) return null
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return seconds ? `${minutes}분 ${String(seconds).padStart(2, '0')}초` : `${minutes}분`

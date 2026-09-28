@@ -19,7 +19,8 @@ public record PostDetailResponse(
         LocalDateTime createdAt,
         RunningRecordDetail runningRecord,
         List<String> tags,
-        List<PostImageResponse> images
+        List<PostImageResponse> images,
+        boolean authorAdmin
 ) {
     public record RunningRecordDetail(LocalDate runningDate, BigDecimal distanceKm,
             int durationSeconds, String locationName, String region, String intensity, String weather) {

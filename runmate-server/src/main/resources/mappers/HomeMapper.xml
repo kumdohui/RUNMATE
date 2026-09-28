@@ -24,13 +24,21 @@
                    (SELECT COUNT(*)
                       FROM comments c
                      WHERE c.post_id = p.post_id
-                       AND c.deleted_at IS NULL) AS comment_count,
+                       AND c.deleted_at IS NULL
+                       AND c.status = 'PUBLISHED'
+                       AND NOT EXISTS (
+                           SELECT 1 FROM users hidden_author
+                            WHERE hidden_author.user_id = c.author_id
+                              AND hidden_author.status = 'SUSPENDED'
+                       )) AS comment_count,
                    p.published_at
               FROM posts p
               JOIN categories category ON category.category_id = p.category_id
               LEFT JOIN running_records rr ON rr.post_id = p.post_id
+              JOIN users u ON u.user_id = p.author_id
              WHERE p.status = 'PUBLISHED'
                AND p.deleted_at IS NULL
+               AND u.status &lt;&gt; 'SUSPENDED'
                AND category.category_id = 2
           ) ranked
          WHERE (like_count + comment_count) &gt; 0
@@ -40,9 +48,11 @@
 
     <select id="countPublishedPosts" resultType="long">
         SELECT COUNT(*)
-          FROM posts
-         WHERE status = 'PUBLISHED'
-           AND deleted_at IS NULL
+          FROM posts p
+          JOIN users u ON u.user_id = p.author_id
+         WHERE p.status = 'PUBLISHED'
+           AND p.deleted_at IS NULL
+           AND u.status &lt;&gt; 'SUSPENDED'
     </select>
 
     <select id="findRecentPosts" resultType="com.runmate.server.home.dto.RecentPostRow">
@@ -62,13 +72,21 @@
                (SELECT COUNT(*)
                   FROM comments c
                  WHERE c.post_id = p.post_id
-                   AND c.deleted_at IS NULL) AS comment_count
+                   AND c.deleted_at IS NULL
+                   AND c.status = 'PUBLISHED'
+                   AND NOT EXISTS (
+                       SELECT 1 FROM users hidden_author
+                        WHERE hidden_author.user_id = c.author_id
+                          AND hidden_author.status = 'SUSPENDED'
+                   )) AS comment_count,
+               p.author_id
           FROM posts p
           JOIN users u ON u.user_id = p.author_id
           LEFT JOIN categories category ON category.category_id = p.category_id
           LEFT JOIN running_records rr ON rr.post_id = p.post_id
          WHERE p.status = 'PUBLISHED'
            AND p.deleted_at IS NULL
+           AND u.status &lt;&gt; 'SUSPENDED'
          ORDER BY
         <choose>
             <when test="sort == 'oldest'">p.published_at ASC, p.post_id ASC</when>

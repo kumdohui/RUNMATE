@@ -16,4 +16,8 @@ public record RunmatePrincipal(Long userId, String loginId, String nickname, Str
     public RunmatePrincipal withProfileImageUrl(String newProfileImageUrl) {
         return new RunmatePrincipal(userId, loginId, nickname, role, newProfileImageUrl);
     }
+
+    public RunmatePrincipal withRole(String newRole) {
+        return new RunmatePrincipal(userId, loginId, nickname, newRole, profileImageUrl);
+    }
 }

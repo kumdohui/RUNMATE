@@ -30,6 +30,7 @@ import com.runmate.server.post.mapper.PostMapper;
 import com.runmate.server.post.mapper.RunningRecordMapper;
 import com.runmate.server.post.mapper.TagMapper;
 import com.runmate.server.user.domain.User;
+import com.runmate.server.user.domain.UserRole;
 import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.mapper.UserMapper;
 import com.runmate.server.common.storage.S3ImageStorageService;
@@ -198,8 +199,15 @@ public class PostService {
         }
         Category category = categoryMapper.findById(post.getCategoryId())
                 .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "카테고리를 찾을 수 없습니다."));
-        String nickname = userMapper.findById(post.getAuthorId())
-                .map(this::displayNickname).orElse("탈퇴한 사용자");
+        User author = userMapper.findById(post.getAuthorId()).orElse(null);
+        if (author != null && author.getStatus() == UserStatus.SUSPENDED && !owner) {
+            User viewer = viewerId == null ? null : userMapper.findById(viewerId).orElse(null);
+            if (viewer == null || viewer.getRole() != UserRole.ADMIN) {
+                throw new AuthException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
+            }
+        }
+        String nickname = author == null ? "탈퇴한 사용자" : displayNickname(author);
+        boolean authorAdmin = author != null && author.getRole() == UserRole.ADMIN;
         PostDetailResponse.RunningRecordDetail running = runningRecordMapper.findByPostId(postId)
                 .map(record -> new PostDetailResponse.RunningRecordDetail(record.getRunningDate(),
                         record.getDistanceKm(), record.getDurationSeconds(), record.getLocationName(),
@@ -213,7 +221,7 @@ public class PostService {
         return new PostDetailResponse(post.getPostId(), post.getAuthorId(), nickname,
                 category.getCategoryId(), category.getName(), post.getTitle(), post.getContent(),
                 post.getStatus().name(), owner, post.getPublishedAt(), post.getCreatedAt(),
-                running, tags, images);
+                running, tags, images, authorAdmin);
     }
 
     private String displayNickname(User user) {

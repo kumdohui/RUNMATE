@@ -23,18 +23,22 @@
         SELECT COUNT(*)
           FROM bookmarks b
           JOIN posts p ON p.post_id = b.post_id
+          JOIN users author ON author.user_id = p.author_id
          WHERE b.user_id = #{userId}
            AND p.deleted_at IS NULL
            AND p.status = 'PUBLISHED'
+           AND author.status &lt;&gt; 'SUSPENDED'
     </select>
 
     <select id="countMine" resultType="long">
         SELECT COUNT(*)
           FROM bookmarks b
           JOIN posts p ON p.post_id = b.post_id
+          JOIN users author ON author.user_id = p.author_id
          WHERE b.user_id = #{userId}
            AND p.deleted_at IS NULL
            AND p.status = 'PUBLISHED'
+           AND author.status &lt;&gt; 'SUSPENDED'
     </select>
 
     <select id="searchMine" resultType="com.runmate.server.post.dto.MyPostRow">
@@ -55,14 +59,23 @@
                rr.region,
                (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
                (SELECT COUNT(*) FROM comments c
-                 WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS comment_count
+                 WHERE c.post_id = p.post_id
+                   AND c.deleted_at IS NULL
+                   AND c.status = 'PUBLISHED'
+                   AND NOT EXISTS (
+                       SELECT 1 FROM users hidden_author
+                        WHERE hidden_author.user_id = c.author_id
+                          AND hidden_author.status = 'SUSPENDED'
+                   )) AS comment_count
           FROM bookmarks b
           JOIN posts p ON p.post_id = b.post_id
+          JOIN users author ON author.user_id = p.author_id
           JOIN categories category ON category.category_id = p.category_id
           LEFT JOIN running_records rr ON rr.post_id = p.post_id
          WHERE b.user_id = #{userId}
            AND p.deleted_at IS NULL
            AND p.status = 'PUBLISHED'
+           AND author.status &lt;&gt; 'SUSPENDED'
          ORDER BY b.created_at DESC, p.post_id DESC
          LIMIT #{limit} OFFSET #{offset}
     </select>

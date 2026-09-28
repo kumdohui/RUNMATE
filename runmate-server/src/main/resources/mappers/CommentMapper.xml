@@ -43,7 +43,8 @@
             WHEN ru.status = 'DELETED' THEN '탈퇴한 사용자'
             ELSE ru.nickname
         END AS reply_to_nickname,
-        c.content, c.created_at, c.updated_at
+        c.content, c.created_at, c.updated_at,
+        CASE WHEN u.role = 'ADMIN' THEN 1 ELSE 0 END AS author_admin
     </sql>
 
     <sql id="rowJoins">
@@ -64,15 +65,39 @@
          WHERE c.post_id = #{postId}
            AND c.deleted_at IS NULL
            AND c.status = 'PUBLISHED'
+           AND NOT EXISTS (
+               SELECT 1 FROM users hidden_author
+                WHERE hidden_author.user_id = c.author_id
+                  AND hidden_author.status = 'SUSPENDED'
+           )
+           AND NOT EXISTS (
+               SELECT 1
+                 FROM comments hidden_parent
+                 JOIN users hidden_parent_author ON hidden_parent_author.user_id = hidden_parent.author_id
+                WHERE hidden_parent.comment_id = c.parent_comment_id
+                  AND hidden_parent_author.status = 'SUSPENDED'
+           )
          ORDER BY c.created_at DESC, c.comment_id DESC
     </select>
 
     <select id="countByPostId" resultType="long">
         SELECT COUNT(*)
-          FROM comments
-         WHERE post_id = #{postId}
-           AND deleted_at IS NULL
-           AND status = 'PUBLISHED'
+          FROM comments c
+         WHERE c.post_id = #{postId}
+           AND c.deleted_at IS NULL
+           AND c.status = 'PUBLISHED'
+           AND NOT EXISTS (
+               SELECT 1 FROM users hidden_author
+                WHERE hidden_author.user_id = c.author_id
+                  AND hidden_author.status = 'SUSPENDED'
+           )
+           AND NOT EXISTS (
+               SELECT 1
+                 FROM comments hidden_parent
+                 JOIN users hidden_parent_author ON hidden_parent_author.user_id = hidden_parent.author_id
+                WHERE hidden_parent.comment_id = c.parent_comment_id
+                  AND hidden_parent_author.status = 'SUSPENDED'
+           )
     </select>
 
     <select id="countByAuthor" resultType="long">

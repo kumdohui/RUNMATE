@@ -65,4 +65,8 @@ public class Post {
         this.status = PostStatus.DELETED;
         this.deletedAt = LocalDateTime.now();
     }
+
+    public void hide() {
+        this.status = PostStatus.HIDDEN;
+    }
 }

@@ -6,6 +6,7 @@
     <sql id="searchConditions">
         WHERE p.status = 'PUBLISHED'
           AND p.deleted_at IS NULL
+          AND u.status &lt;&gt; 'SUSPENDED'
         <if test="keyword != null">
             AND (
                 p.title LIKE CONCAT('%', #{keyword}, '%')
@@ -39,6 +40,7 @@
     <select id="count" resultType="long">
         SELECT COUNT(*)
           FROM posts p
+          JOIN users u ON u.user_id = p.author_id
           JOIN categories category ON category.category_id = p.category_id
           LEFT JOIN running_records rr ON rr.post_id = p.post_id
         <include refid="searchConditions" />
@@ -60,7 +62,17 @@
                rr.location_name,
                rr.region,
                (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
-               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS comment_count
+               (SELECT COUNT(*)
+                  FROM comments c
+                 WHERE c.post_id = p.post_id
+                   AND c.deleted_at IS NULL
+                   AND c.status = 'PUBLISHED'
+                   AND NOT EXISTS (
+                       SELECT 1 FROM users hidden_author
+                        WHERE hidden_author.user_id = c.author_id
+                          AND hidden_author.status = 'SUSPENDED'
+                   )) AS comment_count,
+               p.author_id
           FROM posts p
           JOIN users u ON u.user_id = p.author_id
           JOIN categories category ON category.category_id = p.category_id

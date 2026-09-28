@@ -74,6 +74,7 @@ public class KakaoSignupService {
                 .map(term -> UserTermAgreement.createAgreement(user, term, ipAddress, userAgent))
                 .toList());
         phoneVerification.consume(now);
+        phoneVerificationMapper.update(phoneVerification);
 
         user.recordLoginSuccess(now);
 

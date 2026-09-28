@@ -20,7 +20,8 @@ public record CourseListResponse(
             String locationName,
             String region,
             long likeCount,
-            long commentCount
+            long commentCount,
+            Long authorId
     ) {
     }
 }

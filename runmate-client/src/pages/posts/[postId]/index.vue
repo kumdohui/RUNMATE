@@ -316,6 +316,7 @@ const deletePost = async () => {
         to="/"
         ><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink
       ><div class="write-header-actions">
+        <AdminLink />
         <NotificationBell />
         <button
           type="button"
@@ -343,18 +344,20 @@ const deletePost = async () => {
           <span>{{ post.categoryName }}</span>
           <h1>{{ post.title }}</h1>
           <div>
-            <b>{{ post.authorNickname }}</b
+            <NuxtLink
+              class="detail-author"
+              :to="`/users/${post.authorId}`"
+            >{{ post.authorNickname }}</NuxtLink>
             ><time>{{ dateTime(post.publishedAt || post.createdAt) }}</time
             ><em v-if="post.status === 'DRAFT'">임시저장</em>
           </div>
           <div
-            v-if="!post.owner"
+            v-if="!post.owner && !post.authorAdmin"
             class="detail-owner-actions"
           >
             <ReportButton
               target-type="POST"
               :target-id="post.postId"
-              :user-id="post.authorId"
             />
           </div>
           <details
@@ -540,16 +543,22 @@ const deletePost = async () => {
             class="detail-comment"
           >
             <header>
-              <span class="detail-comment-avatar">
+              <NuxtLink
+                class="detail-comment-avatar"
+                :to="`/users/${comment.authorId}`"
+              >
                 <img
                   v-if="comment.authorProfileImageUrl"
                   :src="comment.authorProfileImageUrl"
                   :alt="`${comment.authorNickname} 프로필`"
                 />
                 <span v-else>{{ comment.authorNickname.slice(0, 1) }}</span>
-              </span>
+              </NuxtLink>
               <div class="detail-comment-meta">
-                <strong>{{ comment.authorNickname }}</strong>
+                <NuxtLink
+                  class="detail-author"
+                  :to="`/users/${comment.authorId}`"
+                >{{ comment.authorNickname }}</NuxtLink>
                 <time>{{ dateTime(comment.createdAt) }}</time>
               </div>
               <div class="detail-comment-tools">
@@ -560,7 +569,7 @@ const deletePost = async () => {
                   답글
                 </button>
                 <ReportButton
-                  v-if="!comment.owner"
+                  v-if="!comment.owner && !comment.authorAdmin"
                   target-type="COMMENT"
                   :target-id="comment.commentId"
                   label="신고"
@@ -610,20 +619,26 @@ const deletePost = async () => {
               class="detail-comment detail-comment--reply"
             >
               <header>
-                <span class="detail-comment-avatar">
+                <NuxtLink
+                  class="detail-comment-avatar"
+                  :to="`/users/${reply.authorId}`"
+                >
                   <img
                     v-if="reply.authorProfileImageUrl"
                     :src="reply.authorProfileImageUrl"
                     :alt="`${reply.authorNickname} 프로필`"
                   />
                   <span v-else>{{ reply.authorNickname.slice(0, 1) }}</span>
-                </span>
+                </NuxtLink>
                 <div class="detail-comment-meta">
-                  <strong>{{ reply.authorNickname }}</strong>
+                  <NuxtLink
+                    class="detail-author"
+                    :to="`/users/${reply.authorId}`"
+                  >{{ reply.authorNickname }}</NuxtLink>
                   <time>{{ dateTime(reply.createdAt) }}</time>
                 </div>
                 <ReportButton
-                  v-if="!reply.owner"
+                  v-if="!reply.owner && !reply.authorAdmin"
                   target-type="COMMENT"
                   :target-id="reply.commentId"
                   label="신고"

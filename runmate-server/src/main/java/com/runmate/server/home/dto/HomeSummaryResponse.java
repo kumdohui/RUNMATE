@@ -32,7 +32,8 @@ public record HomeSummaryResponse(
             Double distanceKm,
             Integer durationSeconds,
             long likeCount,
-            long commentCount
+            long commentCount,
+            long authorId
     ) {
     }
 }

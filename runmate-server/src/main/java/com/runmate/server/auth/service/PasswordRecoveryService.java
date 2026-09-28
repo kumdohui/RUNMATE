@@ -43,6 +43,7 @@ public class PasswordRecoveryService {
                 .filter(found -> found.getPasswordHash() != null && found.getEmail() != null)
                 .orElseThrow(() -> new AuthException("비밀번호를 재설정할 일반 로그인 계정이 없습니다."));
         verification.consume(now);
+        phoneVerificationMapper.update(verification);
         return issueFor(user);
     }
 

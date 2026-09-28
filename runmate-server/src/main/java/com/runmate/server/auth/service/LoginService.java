@@ -47,6 +47,19 @@ public class LoginService {
         }
 
         user.recordLoginSuccess(now);
+        return principalOf(user);
+    }
+
+    @Transactional(readOnly = true)
+    public RunmatePrincipal refresh(RunmatePrincipal current) {
+        User user = userMapper.findById(current.userId()).orElse(null);
+        if (user == null || user.getStatus() != UserStatus.ACTIVE) {
+            return null;
+        }
+        return principalOf(user);
+    }
+
+    private RunmatePrincipal principalOf(User user) {
         return new RunmatePrincipal(user.getUserId(), user.getLoginId(), user.getNickname(),
                 user.getRole().name(), profileImageUrlResolver.resolve(user));
     }

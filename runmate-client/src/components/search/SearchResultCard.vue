@@ -5,10 +5,11 @@ defineProps({ post: { type: Object, required: true } })
 </script>
 
 <template>
-  <NuxtLink
-    class="course-list-card"
-    :to="`/posts/${post.postId}`"
-  >
+  <article class="course-list-card">
+    <NuxtLink
+      class="course-list-main"
+      :to="`/posts/${post.postId}`"
+    >
     <div class="course-list-image">
       <img
         :src="post.imageUrl"
@@ -32,10 +33,16 @@ defineProps({ post: { type: Object, required: true } })
           formatPace(post.distanceKm, post.durationSeconds)
         }}</b>
       </div>
-      <em
-        >{{ post.authorNickname }} · ♡ {{ post.likeCount }} · 댓글
-        {{ post.commentCount }}</em
-      >
     </div>
-  </NuxtLink>
+    </NuxtLink>
+    <em>
+      <NuxtLink
+        v-if="post.authorId"
+        class="detail-author"
+        :to="`/users/${post.authorId}`"
+      >{{ post.authorNickname }}</NuxtLink>
+      <template v-else>{{ post.authorNickname }}</template>
+      · ♡ {{ post.likeCount }} · 댓글 {{ post.commentCount }}
+    </em>
+  </article>
 </template>

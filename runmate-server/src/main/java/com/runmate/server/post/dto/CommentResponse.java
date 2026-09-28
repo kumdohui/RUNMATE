@@ -13,6 +13,7 @@ public record CommentResponse(
         String content,
         boolean owner,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        boolean authorAdmin
 ) {
 }

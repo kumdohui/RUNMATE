@@ -36,6 +36,7 @@ onMounted(loadCategories)
           <span>RUNMATE</span>
         </NuxtLink>
         <div class="course-nav-actions">
+          <AdminLink />
           <NotificationBell />
           <NuxtLink
             class="course-home-link"

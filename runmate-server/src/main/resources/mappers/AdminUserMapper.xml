@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.admin.mapper.AdminUserMapper">
+    <sql id="keyword">
+        <if test="keyword != null">
+            AND (
+                nickname LIKE CONCAT('%', #{keyword}, '%')
+                OR login_id LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </sql>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+          FROM users
+         WHERE status &lt;&gt; 'DELETED'
+        <include refid="keyword" />
+    </select>
+
+    <select id="search" resultType="com.runmate.server.admin.dto.AdminUserRow">
+        SELECT user_id, login_id, nickname, role, status, created_at
+          FROM users
+         WHERE status &lt;&gt; 'DELETED'
+        <include refid="keyword" />
+         ORDER BY user_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE users
+           SET status = #{status},
+               updated_at = NOW()
+         WHERE user_id = #{userId}
+           AND status &lt;&gt; 'DELETED'
+           AND role &lt;&gt; 'ADMIN'
+    </update>
+</mapper>

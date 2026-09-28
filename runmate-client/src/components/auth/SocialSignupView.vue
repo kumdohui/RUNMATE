@@ -198,7 +198,17 @@ const completeSignup = async () => {
 <template>
   <div class="kakao-signup-page">
     <header class="kakao-signup-header">
-      <RouterLink to="/">RUNMATE</RouterLink>
+      <RouterLink
+        class="home-brand"
+        to="/"
+      >
+        <span class="brand-mark">R</span>
+        <span>RUNMATE</span>
+      </RouterLink>
+      <RouterLink
+        class="kakao-signup-home"
+        to="/"
+      >홈으로</RouterLink>
     </header>
     <main class="kakao-signup-main">
       <section class="kakao-signup-card">

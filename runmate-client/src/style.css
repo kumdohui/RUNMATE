@@ -1979,19 +1979,22 @@ a {
   color: #17231c;
 }
 .kakao-signup-header {
-  height: 76px;
+  height: 84px;
   display: flex;
   align-items: center;
-  padding: 0 max(24px, calc((100% - 1120px) / 2));
+  justify-content: space-between;
+  padding: 0 max(48px, calc((100vw - 1120px) / 2));
   background: #fff;
-  border-bottom: 1px solid #e4ebe6;
+  border-bottom: 1px solid #e2e9e4;
 }
-.kakao-signup-header a {
-  color: #12633a;
-  font-size: 22px;
-  font-weight: 900;
+.kakao-signup-home {
+  color: #66756d;
   text-decoration: none;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 700;
+}
+.kakao-signup-home:hover {
+  color: #176844;
 }
 .kakao-signup-main {
   display: grid;
@@ -2885,8 +2888,16 @@ a {
   color: #87928c;
   font-size: 12px;
 }
-.detail-heading b {
+.detail-author {
   color: #315043;
+  font-weight: 800;
+  text-decoration: none;
+}
+.detail-author:hover {
+  text-decoration: underline;
+}
+a.detail-comment-avatar {
+  text-decoration: none;
 }
 .detail-heading em {
   padding: 4px 8px;

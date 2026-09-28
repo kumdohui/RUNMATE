@@ -134,7 +134,8 @@ public class CommentService {
                 row.content(),
                 viewerId != null && viewerId.equals(row.authorId()),
                 row.createdAt(),
-                row.updatedAt()
+                row.updatedAt(),
+                row.authorAdmin()
         );
     }
 }

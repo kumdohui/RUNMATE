@@ -134,11 +134,23 @@
   font-size: 11px;
 }
 
+.feed-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.feed-card-link .feed-body {
+  padding-bottom: 0;
+}
+.feed-byline,
 .feed-body small {
   margin-top: 14px;
   display: block;
   color: #8a958f;
   font-size: 10px;
+}
+.feed-byline {
+  padding: 0 20px 20px;
 }
 
 .feed-pagination {

@@ -7,7 +7,6 @@ import { createCsrfHeaders, readJson } from '../api/http'
 const props = defineProps({
   targetType: { type: String, required: true },
   targetId: { type: Number, required: true },
-  userId: { type: Number, default: null },
   label: { type: String, default: '신고' },
 })
 
@@ -30,9 +29,14 @@ const reasons = [
 ]
 
 const titleOf = () => {
-  if (chosenType.value === 'USER') return '작성자 신고'
   if (chosenType.value === 'COMMENT') return '댓글 신고'
+  if (chosenType.value === 'USER') return '회원 신고'
   return '게시글 신고'
+}
+const menuLabel = () => {
+  if (props.targetType === 'POST') return '게시글 신고'
+  if (props.targetType === 'USER') return '회원 신고'
+  return '신고'
 }
 
 const show = async (type) => {
@@ -59,7 +63,7 @@ const submit = async () => {
   saving.value = true
   message.value = ''
   const targetType = chosenType.value
-  const targetId = targetType === 'USER' ? props.userId : props.targetId
+  const targetId = props.targetId
   try {
     const response = await fetch('/api/reports', {
       method: 'POST',
@@ -92,26 +96,11 @@ const submit = async () => {
   >
     <summary aria-label="신고 메뉴">⋮</summary>
     <div>
-      <template v-if="targetType === 'POST' && userId">
-        <button
-          type="button"
-          @click="show('POST')"
-        >
-          게시글 신고
-        </button>
-        <button
-          type="button"
-          @click="show('USER')"
-        >
-          작성자 신고
-        </button>
-      </template>
       <button
-        v-else
         type="button"
         @click="show(targetType)"
       >
-        신고
+        {{ menuLabel() }}
       </button>
     </div>
   </details>

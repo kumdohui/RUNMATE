@@ -12,6 +12,7 @@ public record CourseSearchRow(
         String locationName,
         String region,
         long likeCount,
-        long commentCount
+        long commentCount,
+        Long authorId
 ) {
 }

@@ -55,7 +55,8 @@ public class HomeSummaryService {
                         row.distanceKm(),
                         row.durationSeconds(),
                         row.likeCount(),
-                        row.commentCount()
+                        row.commentCount(),
+                        row.authorId()
                 ))
                 .toList();
         return new HomeSummaryResponse(

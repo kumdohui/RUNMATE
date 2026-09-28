@@ -22,7 +22,6 @@ import com.runmate.server.auth.dto.AuthDtos.LoginRequest;
 import com.runmate.server.auth.dto.AuthDtos.LoginResponse;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.auth.service.LoginService;
-import com.runmate.server.user.service.ProfileImageService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,7 +33,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LoginController {
     private final LoginService loginService;
-    private final ProfileImageService profileImageService;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
     @PostMapping("/login")
@@ -50,15 +48,30 @@ public class LoginController {
     }
 
     @GetMapping("/session")
-    public ResponseEntity<LoginResponse> session(Authentication authentication) {
+    public ResponseEntity<LoginResponse> session(
+            Authentication authentication,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse
+    ) {
         if (authentication == null
                 || !(authentication.getPrincipal() instanceof RunmatePrincipal principal)) {
             return ResponseEntity.noContent().build();
         }
-        RunmatePrincipal refreshedPrincipal = principal.withProfileImageUrl(
-                profileImageService.getViewUrl(principal.userId(), principal.profileImageUrl())
-        );
-        return ResponseEntity.ok(toResponse(refreshedPrincipal));
+        RunmatePrincipal refreshed = loginService.refresh(principal);
+        if (refreshed == null) {
+            if (servletRequest.getSession(false) != null) {
+                servletRequest.getSession(false).invalidate();
+            }
+            SecurityContextHolder.clearContext();
+            return ResponseEntity.noContent().build();
+        }
+        Authentication next = UsernamePasswordAuthenticationToken.authenticated(
+                refreshed, null, List.of(new SimpleGrantedAuthority("ROLE_" + refreshed.role())));
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(next);
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, servletRequest, servletResponse);
+        return ResponseEntity.ok(toResponse(refreshed));
     }
 
     @GetMapping("/csrf")

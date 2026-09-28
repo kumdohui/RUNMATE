@@ -79,6 +79,50 @@
         </choose>
         LIMIT #{limit} OFFSET #{offset}
     </select>
+
+    <select id="countPublishedByAuthor" resultType="long">
+        SELECT COUNT(*)
+          FROM posts
+         WHERE author_id = #{authorId}
+           AND status = 'PUBLISHED'
+           AND deleted_at IS NULL
+    </select>
+
+    <select id="searchPublishedByAuthor" resultType="com.runmate.server.post.dto.MyPostRow">
+        SELECT p.post_id,
+               category.name AS category_name,
+               p.title,
+               p.summary,
+               p.status,
+               p.published_at,
+               p.created_at,
+               (SELECT pi.storage_key
+                  FROM post_images pi
+                 WHERE pi.post_id = p.post_id
+                 ORDER BY pi.display_order, pi.image_id
+                 LIMIT 1) AS storage_key,
+               rr.distance_km,
+               rr.duration_seconds,
+               rr.region,
+               (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
+               (SELECT COUNT(*) FROM comments c
+                 WHERE c.post_id = p.post_id
+                   AND c.deleted_at IS NULL
+                   AND c.status = 'PUBLISHED'
+                   AND NOT EXISTS (
+                       SELECT 1 FROM users hidden_author
+                        WHERE hidden_author.user_id = c.author_id
+                          AND hidden_author.status = 'SUSPENDED'
+                   )) AS comment_count
+          FROM posts p
+          JOIN categories category ON category.category_id = p.category_id
+          LEFT JOIN running_records rr ON rr.post_id = p.post_id
+         WHERE p.author_id = #{authorId}
+           AND p.status = 'PUBLISHED'
+           AND p.deleted_at IS NULL
+         ORDER BY p.published_at DESC, p.post_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>
 
 

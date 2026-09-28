@@ -13,6 +13,7 @@ public record CommentRow(
         String replyToNickname,
         String content,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        boolean authorAdmin
 ) {
 }

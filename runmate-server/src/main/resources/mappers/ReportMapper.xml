@@ -16,4 +16,131 @@
                AND status IN ('PENDING', 'REVIEWING')
         )
     </select>
+
+    <sql id="adminColumns">
+        r.report_id,
+        r.reporter_id,
+        CASE WHEN ru.status = 'DELETED' THEN '탈퇴한 사용자' ELSE ru.nickname END AS reporter_nickname,
+        r.target_type,
+        r.target_id,
+        r.reason,
+        r.detail,
+        r.status,
+        r.created_at,
+        CASE r.target_type
+            WHEN 'POST' THEN (SELECT title FROM posts WHERE post_id = r.target_id)
+            WHEN 'COMMENT' THEN (SELECT LEFT(content, 80) FROM comments WHERE comment_id = r.target_id)
+            ELSE (
+                SELECT CASE WHEN status = 'DELETED' THEN '탈퇴한 사용자' ELSE nickname END
+                  FROM users
+                 WHERE user_id = r.target_id
+            )
+        END AS target_label,
+        CASE r.target_type
+            WHEN 'POST' THEN (SELECT author_id FROM posts WHERE post_id = r.target_id)
+            WHEN 'COMMENT' THEN (SELECT author_id FROM comments WHERE comment_id = r.target_id)
+            ELSE r.target_id
+        END AS target_author_id
+    </sql>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*)
+          FROM reports
+         WHERE status = #{status}
+    </select>
+
+    <select id="searchByStatus" resultType="com.runmate.server.report.dto.AdminReportRow">
+        SELECT <include refid="adminColumns" />
+          FROM reports r
+          JOIN users ru ON ru.user_id = r.reporter_id
+         WHERE r.status = #{status}
+         ORDER BY r.created_at DESC, r.report_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findAdminById" resultType="com.runmate.server.report.dto.AdminReportRow">
+        SELECT <include refid="adminColumns" />
+          FROM reports r
+          JOIN users ru ON ru.user_id = r.reporter_id
+         WHERE r.report_id = #{reportId}
+    </select>
+
+    <select id="countProcessed" resultType="long">
+        SELECT COUNT(*)
+          FROM reports
+         WHERE status IN ('RESOLVED', 'REJECTED')
+    </select>
+
+    <select id="searchProcessed" resultType="com.runmate.server.admin.dto.AdminLogRow">
+        SELECT r.report_id AS log_id,
+               CASE WHEN u.status = 'DELETED' THEN '탈퇴한 사용자' ELSE u.nickname END AS admin_nickname,
+               COALESCE(r.process_note, '') AS summary,
+               r.process_note AS note,
+               r.processed_at AS created_at,
+               r.status,
+               r.target_type,
+               r.target_id,
+               CASE r.target_type
+                   WHEN 'POST' THEN (SELECT title FROM posts WHERE post_id = r.target_id)
+                   WHEN 'COMMENT' THEN (SELECT LEFT(content, 80) FROM comments WHERE comment_id = r.target_id)
+                   ELSE (
+                       SELECT CASE WHEN status = 'DELETED' THEN '탈퇴한 사용자' ELSE nickname END
+                         FROM users
+                        WHERE user_id = r.target_id
+                   )
+               END AS target_label,
+               r.reason,
+               r.detail,
+               CASE WHEN reporter.status = 'DELETED' THEN '탈퇴한 사용자' ELSE reporter.nickname END AS reporter_nickname,
+               CASE r.target_type
+                   WHEN 'POST' THEN (
+                       SELECT CASE WHEN author.status = 'DELETED' THEN '탈퇴한 사용자' ELSE author.nickname END
+                         FROM posts p
+                         JOIN users author ON author.user_id = p.author_id
+                        WHERE p.post_id = r.target_id
+                   )
+                   WHEN 'COMMENT' THEN (
+                       SELECT CASE WHEN author.status = 'DELETED' THEN '탈퇴한 사용자' ELSE author.nickname END
+                         FROM comments c
+                         JOIN users author ON author.user_id = c.author_id
+                        WHERE c.comment_id = r.target_id
+                   )
+                   ELSE (
+                       SELECT CASE WHEN status = 'DELETED' THEN '탈퇴한 사용자' ELSE nickname END
+                         FROM users
+                        WHERE user_id = r.target_id
+                   )
+               END AS target_nickname,
+               CASE r.target_type
+                   WHEN 'POST' THEN (
+                       SELECT author.status
+                         FROM posts p
+                         JOIN users author ON author.user_id = p.author_id
+                        WHERE p.post_id = r.target_id
+                   )
+                   WHEN 'COMMENT' THEN (
+                       SELECT author.status
+                         FROM comments c
+                         JOIN users author ON author.user_id = c.author_id
+                        WHERE c.comment_id = r.target_id
+                   )
+                   ELSE (SELECT status FROM users WHERE user_id = r.target_id)
+               END AS target_status
+          FROM reports r
+          JOIN users u ON u.user_id = r.processed_by
+          JOIN users reporter ON reporter.user_id = r.reporter_id
+         WHERE r.status IN ('RESOLVED', 'REJECTED')
+         ORDER BY r.processed_at DESC, r.report_id DESC
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <update id="markProcessed">
+        UPDATE reports
+           SET status = #{status},
+               processed_by = #{adminId},
+               process_note = #{note},
+               processed_at = NOW()
+         WHERE report_id = #{reportId}
+           AND status IN ('PENDING', 'REVIEWING')
+    </update>
 </mapper>
