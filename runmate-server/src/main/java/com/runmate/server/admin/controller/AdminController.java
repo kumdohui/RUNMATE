@@ -6,10 +6,13 @@ import com.runmate.server.admin.dto.AdminDtos.MemberStatusRequest;
 import com.runmate.server.admin.dto.AdminDtos.ReportDecisionRequest;
 import com.runmate.server.admin.dto.AdminDtos.ReportFeedResponse;
 import com.runmate.server.admin.service.AdminService;
+import com.runmate.server.admin.service.AdminReauthenticationService;
+import com.runmate.server.admin.dto.AdminDtos.ReauthenticationRequest;
 import com.runmate.server.auth.exception.AuthException;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AdminController {
     private final AdminService adminService;
+    private final AdminReauthenticationService reauthenticationService;
+
+    @PostMapping("/api/admin/reauthenticate")
+    public ResponseEntity<Void> reauthenticate(
+            @Valid @RequestBody ReauthenticationRequest request,
+            Authentication authentication,
+            HttpSession session
+    ) {
+        reauthenticationService.reauthenticate(
+                principal(authentication).userId(),
+                request.password(),
+                session
+        );
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/api/admin/reports")
     public ReportFeedResponse reports(@RequestParam(required = false) Integer page, Authentication authentication) {
@@ -40,6 +58,7 @@ public class AdminController {
             Authentication authentication,
             HttpServletRequest servletRequest
     ) {
+        reauthenticationService.requireRecent(servletRequest.getSession());
         adminService.resolve(
                 principal(authentication).userId(),
                 reportId,
@@ -56,6 +75,7 @@ public class AdminController {
             Authentication authentication,
             HttpServletRequest servletRequest
     ) {
+        reauthenticationService.requireRecent(servletRequest.getSession());
         adminService.reject(
                 principal(authentication).userId(),
                 reportId,
@@ -82,6 +102,7 @@ public class AdminController {
             Authentication authentication,
             HttpServletRequest servletRequest
     ) {
+        reauthenticationService.requireRecent(servletRequest.getSession());
         adminService.changeMemberStatus(
                 principal(authentication).userId(),
                 userId,

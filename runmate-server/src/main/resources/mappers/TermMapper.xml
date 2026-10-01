@@ -11,6 +11,12 @@
         WHERE is_required=TRUE AND effective_at &lt;= #{now}
           AND (expired_at IS NULL OR expired_at &gt; #{now})
     </select>
+    <select id="findCurrentTerms" resultType="com.runmate.server.terms.domain.Term">
+        SELECT <include refid="columns" /> FROM terms
+        WHERE effective_at &lt;= #{now}
+          AND (expired_at IS NULL OR expired_at &gt; #{now})
+        ORDER BY is_required DESC, term_id
+    </select>
 </mapper>
 
 

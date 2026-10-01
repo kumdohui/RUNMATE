@@ -2,9 +2,7 @@ package com.runmate.server.auth.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,8 +19,8 @@ import com.runmate.server.auth.mapper.EmailVerificationMapper;
 import com.runmate.server.auth.mapper.PhoneVerificationMapper;
 import com.runmate.server.terms.domain.Term;
 import com.runmate.server.terms.domain.UserTermAgreement;
-import com.runmate.server.terms.mapper.TermMapper;
 import com.runmate.server.terms.mapper.UserTermAgreementMapper;
+import com.runmate.server.terms.service.TermConsentService;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.UserStatus;
 import com.runmate.server.user.mapper.UserMapper;
@@ -33,23 +31,26 @@ public class SignupService {
     private final UserMapper userMapper;
     private final EmailVerificationMapper emailVerificationMapper;
     private final PhoneVerificationMapper phoneVerificationMapper;
-    private final TermMapper termMapper;
     private final UserTermAgreementMapper userTermAgreementMapper;
+    private final TermConsentService termConsentService;
+    private final RejoinBlockService rejoinBlockService;
     private final PasswordEncoder passwordEncoder;
 
     public SignupService(
             UserMapper userMapper,
             EmailVerificationMapper emailVerificationMapper,
             PhoneVerificationMapper phoneVerificationMapper,
-            TermMapper termMapper,
             UserTermAgreementMapper userTermAgreementMapper,
+            TermConsentService termConsentService,
+            RejoinBlockService rejoinBlockService,
             PasswordEncoder passwordEncoder
     ) {
         this.userMapper = userMapper;
         this.emailVerificationMapper = emailVerificationMapper;
         this.phoneVerificationMapper = phoneVerificationMapper;
-        this.termMapper = termMapper;
         this.userTermAgreementMapper = userTermAgreementMapper;
+        this.termConsentService = termConsentService;
+        this.rejoinBlockService = rejoinBlockService;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -76,11 +77,15 @@ public class SignupService {
                 ));
 
         validatePhoneVerification(phoneVerification, now);
+        rejoinBlockService.requireRejoinAllowed(
+                phoneVerification.getPhoneNumber(),
+                now
+        );
 
         validateUniqueLocalCredentials(request.loginId(), emailVerification.getEmail());
 
-        List<Term> agreedTerms = validateTerms(
-                request.termIds(),
+        List<Term> agreedTerms = termConsentService.validate(
+                request.termConsents(),
                 now
         );
 
@@ -250,45 +255,4 @@ public class SignupService {
         return userMapper.save(user);
     }
 
-    private List<Term> validateTerms(
-            List<Long> termIds,
-            LocalDateTime now
-    ) {
-        Set<Long> requestedTermIds = Set.copyOf(termIds);
-
-        List<Term> agreedTerms = termMapper.findByTermIdIn(
-                requestedTermIds.stream().toList()
-        );
-
-        if (agreedTerms.size() != requestedTermIds.size()) {
-            throw new AuthException(
-                    "존재하지 않는 약관이 포함되어 있습니다."
-            );
-        }
-
-        boolean containsInvalidTerm = agreedTerms.stream()
-                .anyMatch(term -> !term.isEffectiveAt(now));
-
-        if (containsInvalidTerm) {
-            throw new AuthException(
-                    "현재 동의할 수 없는 약관이 포함되어 있습니다."
-            );
-        }
-
-        Set<Long> requiredTermIds = termMapper
-                .findCurrentRequiredTerms(now)
-                .stream()
-                .map(Term::getTermId)
-                .collect(Collectors.toSet());
-
-        if (!requestedTermIds.containsAll(requiredTermIds)) {
-            throw new AuthException(
-                    "필수 약관에 모두 동의해 주세요."
-            );
-        }
-
-        return agreedTerms;
-    }
 }
-
-

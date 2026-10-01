@@ -22,6 +22,7 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(
                                 "/api/auth/signup",
                                 "/api/auth/login",
+                                "/api/auth/login/admin-mfa",
                                 "/api/auth/phone-verifications/**",
                                 "/api/auth/email-verifications/**",
                                 "/api/auth/password/reset",
@@ -35,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/signup",
                                 "/api/auth/login",
+                                "/api/auth/login/admin-mfa",
                                 "/api/auth/session",
                                 "/api/auth/csrf",
                                 "/api/auth/login-id/availability",
@@ -54,7 +56,8 @@ public class SecurityConfig {
                                 "/api/auth/naver/signup",
                                 "/api/home/summary",
                                 "/api/courses",
-                                "/api/categories"
+                                "/api/categories",
+                                "/api/terms/current"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()

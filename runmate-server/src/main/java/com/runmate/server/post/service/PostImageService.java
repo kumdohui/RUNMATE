@@ -71,7 +71,7 @@ public class PostImageService {
                     throw new ImageStorageException("이미지 표시 순서는 0 이상이어야 합니다.");
                 }
                 entities.add(PostImage.create(postId, originalName(file), stored.objectKey(),
-                        storageService.createStorageUri(stored.objectKey()), stored.contentType(),
+                        stored.contentType(),
                         stored.fileSize(), order));
             }
             List<PostImage> saved = postImageMapper.saveAllAndFlush(entities);

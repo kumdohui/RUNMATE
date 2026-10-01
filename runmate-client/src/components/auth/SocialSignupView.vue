@@ -3,7 +3,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authState } from '../../auth'
 import { readJson } from '../../api/http'
-import { normalizePhoneNumber, openTerms as openTermsWindow } from '../../utils/signup'
+import {
+  fetchCurrentTerms,
+  normalizePhoneNumber,
+  openTerms as openTermsWindow,
+  selectedTermConsents,
+} from '../../utils/signup'
 
 const props = defineProps({
   provider: {
@@ -26,6 +31,7 @@ const submitting = ref(false)
 const issuing = ref(false)
 const confirming = ref(false)
 const message = ref('')
+const currentTerms = ref([])
 const developmentCode = ref('')
 const verificationId = ref(null)
 const phoneVerified = ref(false)
@@ -64,11 +70,12 @@ const allTermsAgreed = computed({
 })
 
 const openTerms = (type) => {
-  openTermsWindow(router, type)
+  openTermsWindow(router, type, currentTerms.value)
 }
 
 onMounted(async () => {
   try {
+    currentTerms.value = await fetchCurrentTerms()
     const response = await fetch(`/api/auth/${providerConfig.value.slug}/pending`, {
       credentials: 'include',
     })
@@ -170,6 +177,14 @@ const completeSignup = async () => {
     message.value = '필수 항목을 모두 확인해 주세요.'
     return
   }
+  const termConsents = selectedTermConsents(currentTerms.value, {
+    SERVICE: form.serviceTerm,
+    PRIVACY: form.privacyTerm,
+  })
+  if (termConsents.length === 0) {
+    message.value = '약관 정보를 불러온 후 다시 시도해 주세요.'
+    return
+  }
   submitting.value = true
   try {
     const response = await fetch(`/api/auth/${providerConfig.value.slug}/signup`, {
@@ -179,7 +194,7 @@ const completeSignup = async () => {
       body: JSON.stringify({
         nickname: profile.nickname.trim(),
         phoneVerificationId: verificationId.value,
-        termIds: [1, 2],
+        termConsents,
         ageConfirmed: form.ageConfirmed,
       }),
     })

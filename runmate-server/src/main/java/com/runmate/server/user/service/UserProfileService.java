@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.runmate.server.auth.exception.AuthException;
+import com.runmate.server.auth.service.UserSessionService;
+import com.runmate.server.auth.service.RejoinBlockService;
 import com.runmate.server.user.domain.User;
 import com.runmate.server.user.domain.SocialAccount;
 import com.runmate.server.user.domain.SocialProvider;
@@ -30,6 +32,8 @@ public class UserProfileService {
     private final ProfileImageUrlResolver profileImageUrlResolver;
     private final PasswordEncoder passwordEncoder;
     private final S3ImageStorageService imageStorageService;
+    private final UserSessionService userSessionService;
+    private final RejoinBlockService rejoinBlockService;
 
     @Transactional(readOnly = true)
     public ProfileResponse get(Long userId) { return response(findUser(userId)); }
@@ -46,6 +50,7 @@ public class UserProfileService {
         String bio = request.bio() == null ? null : request.bio().trim();
         user.changeNickname(nickname);
         user.changeBio(bio == null || bio.isBlank() ? null : bio);
+        userMapper.update(user);
         return response(user);
     }
 
@@ -60,6 +65,7 @@ public class UserProfileService {
             throw new AuthException("현재 비밀번호와 다른 비밀번호를 입력해 주세요.");
         }
         user.resetPassword(passwordEncoder.encode(request.newPassword()), LocalDateTime.now());
+        userMapper.update(user);
     }
 
     @Transactional
@@ -98,10 +104,12 @@ public class UserProfileService {
             }
         }
         LocalDateTime now = LocalDateTime.now();
+        rejoinBlockService.block(user.getPhoneNumber(), now);
         String profileImageKey = user.getProfileImageStorageKey();
         socialAccountMapper.deleteAll(socialAccountMapper.findByUser(user));
         user.anonymizeAndWithdraw(now);
-        userMapper.saveAndFlush(user);
+        userMapper.update(user);
+        userSessionService.invalidateAll(userId);
         if (profileImageKey != null && !profileImageKey.isBlank()) imageStorageService.delete(profileImageKey);
     }
 

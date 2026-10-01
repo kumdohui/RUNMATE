@@ -16,6 +16,7 @@ const comments = ref([])
 const commentText = ref('')
 const commentMessage = ref('')
 const savingComment = ref(false)
+const savingReaction = ref(false)
 const editingCommentId = ref(null)
 const replyTo = ref(null)
 const commentBox = ref(null)
@@ -67,17 +68,18 @@ const requireLogin = () => {
 }
 
 const toggleLike = async () => {
-  if (!requireLogin()) return
+  if (!requireLogin() || savingReaction.value) return
   await sendReaction(reaction.value.liked ? 'DELETE' : 'POST', 'likes')
 }
 
 const toggleBookmark = async () => {
-  if (!requireLogin()) return
+  if (!requireLogin() || savingReaction.value) return
   await sendReaction(reaction.value.bookmarked ? 'DELETE' : 'POST', 'bookmarks')
 }
 
 const sendReaction = async (method, path) => {
   commentMessage.value = ''
+  savingReaction.value = true
   try {
     const response = await fetch(`/api/posts/${post.value.postId}/${path}`, {
       method,
@@ -87,8 +89,13 @@ const sendReaction = async (method, path) => {
     reaction.value = await readJson(response, '반응을 저장하지 못했습니다.')
   } catch (requestError) {
     commentMessage.value = requestError.message
+  } finally {
+    savingReaction.value = false
   }
 }
+
+const canManageComment = (comment) =>
+  comment.owner || Number(authState.user?.userId) === Number(comment.authorId)
 
 const commentParts = (content) => {
   const source = content || ''
@@ -130,9 +137,12 @@ const onCommentInput = (event) => {
 }
 
 const searchMentions = async (keyword) => {
-  const response = await fetch(`/api/users/mentions?nickname=${encodeURIComponent(keyword)}`, {
-    credentials: 'include',
-  })
+  const response = await fetch(
+    `/api/users/mentions?nickname=${encodeURIComponent(keyword)}`,
+    {
+      credentials: 'include',
+    },
+  )
   if (!response.ok) return
   mentionCandidates.value = await response.json()
 }
@@ -191,7 +201,7 @@ const saveComment = async () => {
         },
         body: JSON.stringify({
           content: commentText.value.trim(),
-          parentCommentId: editing ? null : replyTo.value?.commentId ?? null,
+          parentCommentId: editing ? null : (replyTo.value?.commentId ?? null),
         }),
       },
     )
@@ -209,11 +219,14 @@ const removeComment = async (comment) => {
   if (!window.confirm('댓글을 삭제할까요?')) return
   commentMessage.value = ''
   try {
-    const response = await fetch(`/api/posts/${post.value.postId}/comments/${comment.commentId}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: await createCsrfHeaders(),
-    })
+    const response = await fetch(
+      `/api/posts/${post.value.postId}/comments/${comment.commentId}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: await createCsrfHeaders(),
+      },
+    )
     if (!response.ok) await readJson(response, '댓글을 삭제하지 못했습니다.')
     await loadReaction()
   } catch (requestError) {
@@ -315,7 +328,8 @@ const deletePost = async () => {
         class="home-brand"
         to="/"
         ><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink
-      ><div class="write-header-actions">
+      >
+      <div class="write-header-actions">
         <AdminLink />
         <NotificationBell />
         <button
@@ -347,7 +361,8 @@ const deletePost = async () => {
             <NuxtLink
               class="detail-author"
               :to="`/users/${post.authorId}`"
-            >{{ post.authorNickname }}</NuxtLink>
+              >{{ post.authorNickname }}</NuxtLink
+            >
             ><time>{{ dateTime(post.publishedAt || post.createdAt) }}</time
             ><em v-if="post.status === 'DRAFT'">임시저장</em>
           </div>
@@ -366,9 +381,7 @@ const deletePost = async () => {
           >
             <summary aria-label="게시글 관리 메뉴">⋮</summary>
             <div class="detail-owner-menu">
-              <NuxtLink :to="`/posts/${post.postId}/edit`">
-                수정
-              </NuxtLink>
+              <NuxtLink :to="`/posts/${post.postId}/edit`"> 수정 </NuxtLink>
               <button
                 type="button"
                 class="danger"
@@ -524,7 +537,9 @@ const deletePost = async () => {
           v-if="post.status === 'PUBLISHED'"
           class="detail-comments"
         >
-          <h2>댓글 <b>{{ comments.length }}</b></h2>
+          <h2>
+            댓글 <b>{{ comments.length }}</b>
+          </h2>
           <p
             v-if="commentMessage"
             class="write-message"
@@ -558,7 +573,8 @@ const deletePost = async () => {
                 <NuxtLink
                   class="detail-author"
                   :to="`/users/${comment.authorId}`"
-                >{{ comment.authorNickname }}</NuxtLink>
+                  >{{ comment.authorNickname }}</NuxtLink
+                >
                 <time>{{ dateTime(comment.createdAt) }}</time>
               </div>
               <div class="detail-comment-tools">
@@ -569,13 +585,13 @@ const deletePost = async () => {
                   답글
                 </button>
                 <ReportButton
-                  v-if="!comment.owner && !comment.authorAdmin"
+                  v-if="!canManageComment(comment) && !comment.authorAdmin"
                   target-type="COMMENT"
                   :target-id="comment.commentId"
                   label="신고"
                 />
                 <details
-                  v-if="comment.owner"
+                  v-if="canManageComment(comment)"
                   class="detail-comment-menu"
                 >
                   <summary aria-label="댓글 관리">⋮</summary>
@@ -601,7 +617,8 @@ const deletePost = async () => {
               <span
                 v-if="showReplyTag(comment)"
                 class="detail-mention"
-              >@{{ comment.replyToNickname }}</span>
+                >@{{ comment.replyToNickname }}</span
+              >
               <template
                 v-for="(part, index) in commentParts(comment.content)"
                 :key="index"
@@ -609,7 +626,8 @@ const deletePost = async () => {
                 <span
                   v-if="part.mention"
                   class="detail-mention"
-                >@{{ part.mention }}</span>
+                  >@{{ part.mention }}</span
+                >
                 <template v-else>{{ part.text }}</template>
               </template>
             </p>
@@ -634,17 +652,18 @@ const deletePost = async () => {
                   <NuxtLink
                     class="detail-author"
                     :to="`/users/${reply.authorId}`"
-                  >{{ reply.authorNickname }}</NuxtLink>
+                    >{{ reply.authorNickname }}</NuxtLink
+                  >
                   <time>{{ dateTime(reply.createdAt) }}</time>
                 </div>
                 <ReportButton
-                  v-if="!reply.owner && !reply.authorAdmin"
+                  v-if="!canManageComment(reply) && !reply.authorAdmin"
                   target-type="COMMENT"
                   :target-id="reply.commentId"
                   label="신고"
                 />
                 <details
-                  v-if="reply.owner"
+                  v-if="canManageComment(reply)"
                   class="detail-comment-menu"
                 >
                   <summary aria-label="답글 관리">⋮</summary>
@@ -669,7 +688,8 @@ const deletePost = async () => {
                 <span
                   v-if="showReplyTag(reply)"
                   class="detail-mention"
-                >@{{ reply.replyToNickname }}</span>
+                  >@{{ reply.replyToNickname }}</span
+                >
                 <template
                   v-for="(part, index) in commentParts(reply.content)"
                   :key="index"
@@ -677,7 +697,8 @@ const deletePost = async () => {
                   <span
                     v-if="part.mention"
                     class="detail-mention"
-                  >@{{ part.mention }}</span>
+                    >@{{ part.mention }}</span
+                  >
                   <template v-else>{{ part.text }}</template>
                 </template>
               </p>

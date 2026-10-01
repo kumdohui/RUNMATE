@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.auth.mapper.RejoinBlockMapper">
+    <insert id="upsert">
+        INSERT INTO rejoin_blocks (
+            phone_identifier_hash,
+            blocked_until,
+            created_at
+        ) VALUES (
+            #{phoneIdentifierHash},
+            #{blockedUntil},
+            NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            blocked_until = VALUES(blocked_until),
+            created_at = NOW()
+    </insert>
+
+    <select id="existsActive" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM rejoin_blocks
+            WHERE phone_identifier_hash = #{phoneIdentifierHash}
+              AND blocked_until &gt; #{now}
+        )
+    </select>
+</mapper>

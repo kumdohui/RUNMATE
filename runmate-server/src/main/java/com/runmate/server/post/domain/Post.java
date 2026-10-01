@@ -20,8 +20,6 @@ public class Post {
 
     private String content;
 
-    private String thumbnailUrl;
-
     private Long viewCount = 0L;
 
     private Boolean notice = false;

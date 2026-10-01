@@ -18,33 +18,19 @@ public class SocialAccount {
 
     private String providerUserId;
 
-    private String providerEmail;
-
     private LocalDateTime connectedAt;
 
     private LocalDateTime lastLoginAt;
 
-    public static SocialAccount createKakao(
+    public static SocialAccount create(
             User user,
+            SocialProvider provider,
             String providerUserId,
             LocalDateTime now
     ) {
         SocialAccount account = new SocialAccount();
         account.user = user;
-        account.provider = SocialProvider.KAKAO;
-        account.providerUserId = providerUserId;
-        account.lastLoginAt = now;
-        return account;
-    }
-
-    public static SocialAccount createNaver(
-            User user,
-            String providerUserId,
-            LocalDateTime now
-    ) {
-        SocialAccount account = new SocialAccount();
-        account.user = user;
-        account.provider = SocialProvider.NAVER;
+        account.provider = provider;
         account.providerUserId = providerUserId;
         account.lastLoginAt = now;
         return account;

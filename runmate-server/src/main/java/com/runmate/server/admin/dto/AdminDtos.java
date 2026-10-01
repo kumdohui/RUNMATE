@@ -9,6 +9,11 @@ public final class AdminDtos {
     private AdminDtos() {
     }
 
+    public record ReauthenticationRequest(
+            @NotBlank(message = "관리자 비밀번호를 입력해 주세요.") String password
+    ) {
+    }
+
     public record ReportDecisionRequest(
             @NotBlank(message = "처리 메모를 입력해 주세요.")
             @Size(max = 1000, message = "메모는 1000자 이하로 입력해 주세요.") String note,

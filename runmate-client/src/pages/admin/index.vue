@@ -20,6 +20,10 @@ const note = ref('')
 const statusNote = ref('')
 const saving = ref(false)
 const confirm = ref(null)
+const reauth = ref(null)
+const reauthPassword = ref('')
+const reauthError = ref('')
+const reauthenticatedUntil = ref(0)
 
 const reasons = {
   SPAM: '스팸',
@@ -211,7 +215,46 @@ const runConfirm = async () => {
   const action = confirm.value
   if (!action) return
   confirm.value = null
-  await action.run()
+  await requireReauthentication(action.run)
+}
+
+const requireReauthentication = async (run) => {
+  if (Date.now() < reauthenticatedUntil.value) {
+    await run()
+    return
+  }
+  reauthPassword.value = ''
+  reauthError.value = ''
+  reauth.value = { run }
+}
+
+const submitReauthentication = async () => {
+  if (!reauthPassword.value) {
+    reauthError.value = '관리자 비밀번호를 입력해 주세요.'
+    return
+  }
+  saving.value = true
+  reauthError.value = ''
+  try {
+    const response = await fetch('/api/admin/reauthenticate', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(await createCsrfHeaders()),
+      },
+      body: JSON.stringify({ password: reauthPassword.value }),
+    })
+    await readJson(response, '관리자 비밀번호를 확인하지 못했습니다.')
+    const run = reauth.value?.run
+    reauthenticatedUntil.value = Date.now() + 5 * 60 * 1000
+    reauth.value = null
+    if (run) await run()
+  } catch (error) {
+    reauthError.value = error.message
+  } finally {
+    saving.value = false
+  }
 }
 
 const changeStatus = async (member) => {
@@ -507,7 +550,7 @@ onMounted(async () => {
                   type="button"
                   class="quiet"
                   :disabled="saving || !note.trim()"
-                  @click="decide(selected, 'reject')"
+                  @click="requireReauthentication(() => decide(selected, 'reject'))"
                 >
                   기각
                 </button>
@@ -516,7 +559,7 @@ onMounted(async () => {
                   type="button"
                   class="hide"
                   :disabled="saving || !note.trim()"
-                  @click="decide(selected, 'hide')"
+                  @click="requireReauthentication(() => decide(selected, 'hide'))"
                 >
                   {{ hideLabel(selected) }}
                 </button>
@@ -530,6 +573,52 @@ onMounted(async () => {
                 </button>
               </div>
             </article>
+          </div>
+        </Teleport>
+        <Teleport to="body">
+          <div
+            v-if="reauth"
+            class="report-backdrop confirm-backdrop"
+            @click.self="reauth = null"
+          >
+            <form
+              class="report-card confirm-card"
+              @submit.prevent="submitReauthentication"
+            >
+              <h2>관리자 본인 확인</h2>
+              <p>중요 작업을 계속하려면 관리자 비밀번호를 다시 입력해 주세요.</p>
+              <label>
+                비밀번호
+                <input
+                  v-model="reauthPassword"
+                  type="password"
+                  autocomplete="current-password"
+                  autofocus
+                />
+              </label>
+              <p
+                v-if="reauthError"
+                class="report-error"
+              >
+                {{ reauthError }}
+              </p>
+              <div class="report-actions">
+                <button
+                  type="button"
+                  class="quiet"
+                  @click="reauth = null"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  class="hide"
+                  :disabled="saving"
+                >
+                  확인
+                </button>
+              </div>
+            </form>
           </div>
         </Teleport>
         <Teleport to="body">
@@ -778,6 +867,13 @@ onMounted(async () => {
   font: inherit;
   font-size: 15px;
   resize: vertical;
+}
+.report-card input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid #d7dfda;
+  border-radius: 12px;
+  font: inherit;
 }
 .report-card textarea::placeholder {
   color: #b3bbb6;

@@ -210,10 +210,12 @@ public class EmailVerificationService {
         }
         if (!passwordEncoder.matches(code, verification.getCodeHash())) {
             verification.recordFailedAttempt();
+            emailVerificationMapper.update(verification);
             throw new AuthException("인증번호가 올바르지 않습니다.");
         }
 
         verification.verify(now);
+        emailVerificationMapper.update(verification);
         return new EmailVerificationConfirmResponse(verificationId, true);
     }
 }

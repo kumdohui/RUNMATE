@@ -16,8 +16,6 @@ public class PostImage {
 
     private String storageKey;
 
-    private String imageUrl;
-
     private String contentType;
 
     private Long fileSize;
@@ -27,12 +25,11 @@ public class PostImage {
     private LocalDateTime createdAt;
 
     public static PostImage create(Long postId, String originalName, String storageKey,
-            String imageUrl, String contentType, long fileSize, int displayOrder) {
+            String contentType, long fileSize, int displayOrder) {
         PostImage image = new PostImage();
         image.postId = postId;
         image.originalName = originalName;
         image.storageKey = storageKey;
-        image.imageUrl = imageUrl;
         image.contentType = contentType;
         image.fileSize = fileSize;
         image.displayOrder = displayOrder;

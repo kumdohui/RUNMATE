@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { login } from '../auth'
+import { confirmAdminMfa, login } from '../auth'
 import { useSocialLogin } from '../composables/useSocialLogin'
 
 const router = useRouter()
@@ -11,6 +11,8 @@ const rememberLoginId = ref(Boolean(savedLoginId))
 const showPassword = ref(false)
 const submitting = ref(false)
 const message = ref('')
+const mfaRequired = ref(false)
+const mfaCode = ref('')
 
 const submit = async () => {
   message.value = ''
@@ -20,12 +22,34 @@ const submit = async () => {
   }
   submitting.value = true
   try {
-    await login(form.loginId.trim(), form.password)
+    const result = await login(form.loginId.trim(), form.password)
     if (rememberLoginId.value) {
       localStorage.setItem('runmate.savedLoginId', form.loginId.trim())
     } else {
       localStorage.removeItem('runmate.savedLoginId')
     }
+    if (result.mfaRequired) {
+      mfaRequired.value = true
+      message.value = '관리자 이메일로 전송된 인증번호를 입력해 주세요.'
+      return
+    }
+    await router.replace('/')
+  } catch (error) {
+    message.value = error.message
+  } finally {
+    submitting.value = false
+  }
+}
+
+const submitMfa = async () => {
+  message.value = ''
+  if (!/^\d{6}$/.test(mfaCode.value)) {
+    message.value = '인증번호 6자리를 입력해 주세요.'
+    return
+  }
+  submitting.value = true
+  try {
+    await confirmAdminMfa(mfaCode.value)
     await router.replace('/')
   } catch (error) {
     message.value = error.message
@@ -68,7 +92,10 @@ const { startKakaoLogin, startNaverLogin } = useSocialLogin()
           <h2>로그인</h2>
           <p>가입한 계정으로 RUNMATE를 계속 이용하세요.</p>
         </div>
-        <form @submit.prevent="submit">
+        <form
+          v-if="!mfaRequired"
+          @submit.prevent="submit"
+        >
           <label for="loginId">아이디</label
           ><input
             id="loginId"
@@ -116,6 +143,34 @@ const { startKakaoLogin, startNaverLogin } = useSocialLogin()
             :disabled="submitting"
           >
             {{ submitting ? '로그인 중...' : '로그인' }}
+          </button>
+        </form>
+        <form
+          v-else
+          @submit.prevent="submitMfa"
+        >
+          <label for="adminMfaCode">관리자 이메일 인증번호</label>
+          <input
+            id="adminMfaCode"
+            v-model="mfaCode"
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            autocomplete="one-time-code"
+            placeholder="인증번호 6자리"
+          />
+          <p
+            v-if="message"
+            class="login-error"
+          >
+            {{ message }}
+          </p>
+          <button
+            class="login-submit"
+            type="submit"
+            :disabled="submitting"
+          >
+            {{ submitting ? '확인 중...' : '관리자 인증' }}
           </button>
         </form>
         <div class="social-divider"><span>또는 간편 로그인</span></div>

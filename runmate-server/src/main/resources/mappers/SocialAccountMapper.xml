@@ -5,7 +5,6 @@
         <id property="socialAccountId" column="social_account_id" />
         <result property="provider" column="provider" />
         <result property="providerUserId" column="provider_user_id" />
-        <result property="providerEmail" column="provider_email" />
         <result property="connectedAt" column="connected_at" />
         <result property="lastLoginAt" column="social_last_login_at" />
         <association property="user" javaType="com.runmate.server.user.domain.User">
@@ -21,7 +20,7 @@
     </resultMap>
     <sql id="selectAccount">
         SELECT sa.social_account_id, sa.provider, sa.provider_user_id,
-               sa.provider_email, sa.connected_at,
+               sa.connected_at,
                sa.last_login_at AS social_last_login_at,
                u.user_id, u.login_id, u.email, u.password_hash,
                u.phone_number, u.nickname, u.role, u.status
@@ -43,8 +42,8 @@
         SELECT provider FROM social_accounts WHERE user_id=#{userId}
     </select>
     <insert id="insert" useGeneratedKeys="true" keyProperty="socialAccountId">
-        INSERT INTO social_accounts (user_id, provider, provider_user_id, provider_email, connected_at, last_login_at)
-        VALUES (#{user.userId}, #{provider}, #{providerUserId}, #{providerEmail}, NOW(), #{lastLoginAt})
+        INSERT INTO social_accounts (user_id, provider, provider_user_id, connected_at, last_login_at)
+        VALUES (#{user.userId}, #{provider}, #{providerUserId}, NOW(), #{lastLoginAt})
     </insert>
     <update id="update">UPDATE social_accounts SET last_login_at=#{lastLoginAt} WHERE social_account_id=#{socialAccountId}</update>
     <delete id="deleteById">DELETE FROM social_accounts WHERE social_account_id=#{socialAccountId}</delete>

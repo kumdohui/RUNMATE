@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 public interface TermMapper {
     List<Term> findByTermIdIn(@Param("termIds") List<Long> termIds);
     List<Term> findCurrentRequiredTerms(@Param("now") LocalDateTime now);
+    List<Term> findCurrentTerms(@Param("now") LocalDateTime now);
 }
 
 

@@ -6,7 +6,24 @@ export const normalizePhoneNumber = (value) => {
   return phoneNumber.replaceAll('-', '')
 }
 
-export const openTerms = (router, type) => {
-  const url = router.resolve(`/terms/${type}/1.0`).href
+export const fetchCurrentTerms = async () => {
+  const response = await fetch('/api/terms/current')
+  const body = await response.json().catch(() => [])
+  if (!response.ok) throw new Error('약관 정보를 불러오지 못했습니다.')
+  return Array.isArray(body) ? body : []
+}
+
+export const selectedTermConsents = (terms, selections) =>
+  terms
+    .filter((term) => selections[term.termCode])
+    .map((term) => ({
+      termId: term.termId,
+      contentHash: term.contentHash,
+    }))
+
+export const openTerms = (router, type, terms = []) => {
+  const code = type.toUpperCase()
+  const term = terms.find((item) => item.termCode === code)
+  const url = term?.contentUrl || router.resolve(`/terms/${type}/${term?.version || '1.0'}`).href
   window.open(url, '_blank')
 }

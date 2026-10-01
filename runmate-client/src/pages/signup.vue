@@ -1,7 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { normalizePhoneNumber, openTerms as openTermsWindow } from '../utils/signup'
+import {
+  fetchCurrentTerms,
+  normalizePhoneNumber,
+  openTerms as openTermsWindow,
+  selectedTermConsents,
+} from '../utils/signup'
 
 const router = useRouter()
 
@@ -37,6 +42,7 @@ const nicknameChecking = ref(false)
 const nicknameAvailable = ref(null)
 const checkedNickname = ref('')
 const errors = reactive({})
+const currentTerms = ref([])
 const form = reactive({
   loginId: '',
   nickname: '',
@@ -386,12 +392,20 @@ const goToTerms = () => {
   if (validateAccountStep()) step.value = 2
 }
 const openTerms = (type) => {
-  openTermsWindow(router, type)
+  openTermsWindow(router, type, currentTerms.value)
 }
 const submitSignup = async () => {
   clearErrors()
   if (!form.serviceTerm || !form.privacyTerm || !form.ageConfirmed) {
     errors.terms = '필수 항목을 모두 확인해 주세요.'
+    return
+  }
+  const termConsents = selectedTermConsents(currentTerms.value, {
+    SERVICE: form.serviceTerm,
+    PRIVACY: form.privacyTerm,
+  })
+  if (termConsents.length === 0) {
+    errors.terms = '약관 정보를 불러온 후 다시 시도해 주세요.'
     return
   }
   isSubmitting.value = true
@@ -405,7 +419,7 @@ const submitSignup = async () => {
         nickname: form.nickname.trim(),
         emailVerificationId: Number(form.emailVerificationId),
         phoneVerificationId: Number(form.phoneVerificationId),
-        termIds: [1, 2],
+        termConsents,
         ageConfirmed: form.ageConfirmed,
         linkExistingAccount: linkExistingAccount.value,
       }),
@@ -420,6 +434,14 @@ const submitSignup = async () => {
     isSubmitting.value = false
   }
 }
+
+onMounted(async () => {
+  try {
+    currentTerms.value = await fetchCurrentTerms()
+  } catch (error) {
+    serverMessage.value = error.message
+  }
+})
 </script>
 
 <template>

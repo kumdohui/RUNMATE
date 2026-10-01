@@ -28,7 +28,7 @@ public class LoginService {
     private final ProfileImageUrlResolver profileImageUrlResolver;
 
     @Transactional(noRollbackFor = AuthException.class)
-    public RunmatePrincipal login(LoginRequest request) {
+    public LoginCandidate authenticate(LoginRequest request) {
         LocalDateTime now = LocalDateTime.now();
         User user = userMapper.findByLoginId(request.loginId()).orElseThrow(this::invalidCredentials);
 
@@ -43,10 +43,20 @@ public class LoginService {
         }
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             user.recordLoginFailure(now, MAX_LOGIN_ATTEMPTS, LOCK_MINUTES);
+            userMapper.update(user);
             throw invalidCredentials();
         }
+        return new LoginCandidate(principalOf(user), user.getEmail());
+    }
 
-        user.recordLoginSuccess(now);
+    @Transactional
+    public RunmatePrincipal completeLogin(Long userId) {
+        User user = userMapper.findById(userId).orElseThrow(this::invalidCredentials);
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "이용할 수 없는 계정입니다.");
+        }
+        user.recordLoginSuccess(LocalDateTime.now());
+        userMapper.update(user);
         return principalOf(user);
     }
 
@@ -67,6 +77,8 @@ public class LoginService {
     private AuthException invalidCredentials() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
     }
-}
 
+    public record LoginCandidate(RunmatePrincipal principal, String email) {
+    }
+}
 

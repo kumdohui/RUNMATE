@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { createCsrfHeaders, readJson } from './api/http'
 
 export const authState = reactive({ user: null, checked: false })
 
@@ -22,28 +23,34 @@ export const login = async (loginId, password) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ loginId, password }),
   })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.message || '로그인할 수 없습니다.')
+  const data = await readJson(response, '로그인할 수 없습니다.')
+  if (!data.mfaRequired) {
+    authState.user = data.user
+    authState.checked = true
+  }
+  return data
+}
+
+export const confirmAdminMfa = async (code) => {
+  const response = await fetch('/api/auth/login/admin-mfa', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  })
+  const data = await readJson(response, '관리자 인증을 완료할 수 없습니다.')
   authState.user = data
   authState.checked = true
   return data
 }
 
 export const logout = async () => {
-  const csrfResponse = await fetch('/api/auth/csrf', {
-    credentials: 'include',
-    cache: 'no-store',
-  })
-  if (!csrfResponse.ok) throw new Error('로그아웃 보안 정보를 가져오지 못했습니다.')
-  const csrf = await csrfResponse.json()
+  const csrfHeaders = await createCsrfHeaders()
   const response = await fetch('/api/auth/logout', {
     method: 'POST',
     credentials: 'include',
-    headers: { [csrf.headerName]: csrf.token },
+    headers: csrfHeaders,
   })
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}))
-    throw new Error(data.message || `로그아웃할 수 없습니다. (${response.status})`)
-  }
+  if (!response.ok) await readJson(response, '로그아웃할 수 없습니다.')
   authState.user = null
 }

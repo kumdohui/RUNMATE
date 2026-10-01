@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.runmate.server.admin.dto.AdminDtos.ReportFeedResponse;
 import com.runmate.server.admin.service.AdminService;
+import com.runmate.server.admin.service.AdminReauthenticationService;
 import com.runmate.server.auth.security.RunmatePrincipal;
 import com.runmate.server.config.SecurityConfig;
 import java.util.List;
@@ -27,6 +28,9 @@ class AdminSecurityTest {
 
     @MockitoBean
     private AdminService adminService;
+
+    @MockitoBean
+    private AdminReauthenticationService reauthenticationService;
 
     @Test
     void blocksRegularMember() throws Exception {
