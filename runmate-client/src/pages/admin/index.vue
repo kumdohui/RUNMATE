@@ -362,18 +362,20 @@ onMounted(async () => {
           <button type="submit">검색</button>
         </form>
 
-        <p
+        <AppStatePanel
           v-if="message && !selected"
-          class="admin-empty"
-        >
-          {{ message }}
-        </p>
-        <p
-          v-if="loading"
-          class="admin-empty"
-        >
-          불러오는 중...
-        </p>
+          type="error"
+          title="관리자 정보를 불러오지 못했습니다"
+          :description="message"
+          action-label="다시 시도"
+          @action="load"
+        />
+        <AppStatePanel
+          v-else-if="loading"
+          type="loading"
+          title="관리자 정보를 불러오는 중"
+          description="잠시만 기다려 주세요."
+        />
 
         <div
           v-else-if="tab === 'reports'"

@@ -84,18 +84,20 @@ loadSession().then(() => load(0))
       </div>
     </header>
     <main class="course-main member-main">
-      <p
+      <AppStatePanel
         v-if="loading"
-        class="member-empty"
-      >
-        피드를 불러오는 중...
-      </p>
-      <p
+        type="loading"
+        title="피드를 불러오는 중"
+        description="잠시만 기다려 주세요."
+      />
+      <AppStatePanel
         v-else-if="message"
-        class="member-empty"
-      >
-        {{ message }}
-      </p>
+        type="error"
+        title="피드를 불러오지 못했습니다"
+        :description="message"
+        action-label="다시 시도"
+        @action="load(currentPage)"
+      />
       <template v-else-if="profile">
         <section class="member-panel">
           <div class="member-profile">
@@ -151,12 +153,12 @@ loadSession().then(() => load(0))
             </div>
           </RouterLink>
         </div>
-        <p
+        <AppStatePanel
           v-else
-          class="member-empty"
-        >
-          공개된 게시글이 없습니다.
-        </p>
+          type="empty"
+          title="공개된 게시글이 없습니다"
+          description="회원이 글을 공개하면 이곳에서 확인할 수 있어요."
+        />
         <nav
           v-if="totalPages > 1"
           class="feed-pagination"

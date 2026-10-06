@@ -113,24 +113,26 @@ onMounted(async () => {
           모두 읽음
         </button>
       </header>
-      <p
+      <AppStatePanel
         v-if="message"
-        class="notify-empty"
-      >
-        {{ message }}
-      </p>
-      <p
+        type="error"
+        title="불러오지 못했습니다"
+        :description="message"
+        action-label="다시 시도"
+        @action="load(currentPage)"
+      />
+      <AppStatePanel
         v-else-if="loading"
-        class="notify-empty"
-      >
-        알림을 불러오는 중...
-      </p>
-      <p
+        type="loading"
+        title="알림을 불러오는 중"
+        description="잠시만 기다려 주세요."
+      />
+      <AppStatePanel
         v-else-if="!notifications.length"
-        class="notify-empty"
-      >
-        새 알림이 없습니다.
-      </p>
+        type="empty"
+        title="새 알림이 없습니다"
+        description="새로운 활동이 생기면 이곳에서 알려드릴게요."
+      />
       <div
         v-else
         class="notify-list"

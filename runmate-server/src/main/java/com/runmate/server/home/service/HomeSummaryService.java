@@ -33,6 +33,7 @@ public class HomeSummaryService {
                         row.region(),
                         row.distanceKm(),
                         row.durationSeconds(),
+                        row.storageKey() == null ? null : imageStorageService.createViewUrl(row.storageKey()),
                         row.likeCount(),
                         row.commentCount()
                 ))

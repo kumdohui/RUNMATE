@@ -17,6 +17,7 @@ public record HomeSummaryResponse(
             String region,
             double distanceKm,
             int durationSeconds,
+            String imageUrl,
             long likeCount,
             long commentCount
     ) {

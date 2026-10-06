@@ -56,7 +56,7 @@ public class CourseService {
                 trimToNull(request.keyword()),
                 request.categoryId(),
                 trimToNull(request.region()),
-                normalizeTag(trimToNull(request.tag())),
+                normalizeTags(trimToNull(request.tag())),
                 request.minDistance(),
                 request.maxDistance(),
                 sort,
@@ -101,12 +101,19 @@ public class CourseService {
         return value.trim();
     }
 
-    private String normalizeTag(String value) {
-        if (value == null) return null;
-        return Normalizer.normalize(value, Normalizer.Form.NFKC)
-                .toLowerCase(Locale.ROOT)
-                .replaceFirst("^#+", "")
-                .replaceAll("\\s+", "");
+    private List<String> normalizeTags(String value) {
+        if (value == null) return List.of();
+        return List.of(value.split(","))
+                .stream()
+                .map(tag -> Normalizer.normalize(tag, Normalizer.Form.NFKC)
+                        .toLowerCase(Locale.ROOT)
+                        .trim()
+                        .replaceFirst("^#+", "")
+                        .replaceAll("\\s+", ""))
+                .filter(tag -> !tag.isBlank())
+                .distinct()
+                .limit(10)
+                .toList();
     }
 
     private String normalizeSort(String sort) {

@@ -173,26 +173,23 @@ onMounted(() => load(0))
       v-if="loading"
       class="course-main"
     >
-      <p class="course-message">내 피드를 불러오는 중...</p>
+      <AppStatePanel
+        type="loading"
+        title="내 피드를 불러오는 중"
+        description="잠시만 기다려 주세요."
+      />
     </main>
     <main
       v-else-if="!loaded"
       class="course-main"
     >
-      <div class="course-message course-message--error">
-        <span aria-hidden="true">!</span>
-        <p>
-          <strong>내 피드를 불러오지 못했습니다.</strong>
-          <small>{{ error }}</small>
-        </p>
-        <button
-          class="course-retry"
-          type="button"
-          @click="load(0)"
-        >
-          다시 시도
-        </button>
-      </div>
+      <AppStatePanel
+        type="error"
+        title="내 피드를 불러오지 못했습니다"
+        :description="error"
+        action-label="다시 시도"
+        @action="load(0)"
+      />
     </main>
     <main
       v-else

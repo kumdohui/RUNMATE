@@ -25,6 +25,9 @@ const initialFilters = () => ({
 })
 
 export const usePostSearch = () => {
+  const route = useRoute()
+  const router = useRouter()
+  const queryValue = (value) => (Array.isArray(value) ? value[0] : value || '')
   const categories = ref([])
   const posts = ref([])
   const currentPage = ref(0)
@@ -33,7 +36,15 @@ export const usePostSearch = () => {
   const loading = ref(false)
   const searched = ref(false)
   const message = ref('')
-  const filters = reactive(initialFilters())
+  const filters = reactive({
+    ...initialFilters(),
+    keyword: queryValue(route.query.keyword),
+    categoryId: queryValue(route.query.categoryId),
+    region: queryValue(route.query.region),
+    distanceRange: queryValue(route.query.distanceRange),
+    tag: queryValue(route.query.tag),
+    sort: queryValue(route.query.sort) || 'latest',
+  })
 
   const createParams = (page) => {
     const params = new URLSearchParams({
@@ -44,11 +55,18 @@ export const usePostSearch = () => {
     if (filters.keyword.trim()) params.set('keyword', filters.keyword.trim())
     if (filters.categoryId) params.set('categoryId', filters.categoryId)
     if (filters.region) params.set('region', filters.region)
+    if (filters.distanceRange) params.set('distanceRange', filters.distanceRange)
     if (filters.tag.trim()) params.set('tag', filters.tag.trim())
     if (distance?.min) params.set('minDistance', distance.min)
     if (distance?.max) params.set('maxDistance', distance.max)
     return params
   }
+
+  const saveSearchState = (page) =>
+    router.replace({
+      path: '/courses',
+      query: Object.fromEntries(createParams(page).entries()),
+    })
 
   const loadCategories = async () => {
     try {
@@ -58,10 +76,11 @@ export const usePostSearch = () => {
     }
   }
 
-  const loadPosts = async (page = 0) => {
+  const loadPosts = async (page = 0, saveState = true) => {
     loading.value = true
     message.value = ''
     try {
+      if (saveState) await saveSearchState(page)
       const data = await fetchPosts(createParams(page))
       posts.value = (data.courses ?? []).map((post) => ({
         ...post,
@@ -95,12 +114,6 @@ export const usePostSearch = () => {
   }
 
   const search = async () => {
-    if (filters.keyword.trim() && filters.keyword.trim().length < 2) {
-      message.value = '검색어는 두 글자 이상 입력해 주세요.'
-      searched.value = false
-      clearResults()
-      return
-    }
     if (!hasCondition()) {
       message.value = ''
       searched.value = false
@@ -116,12 +129,21 @@ export const usePostSearch = () => {
     searched.value = false
     clearResults()
     message.value = ''
+    router.replace({ path: '/courses' })
   }
 
   const movePage = async (page) => {
     if (page < 0 || page >= totalPages.value || page === currentPage.value) return
     await loadPosts(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const restore = async () => {
+    await loadCategories()
+    if (!hasCondition()) return
+    searched.value = true
+    const requestedPage = Number.parseInt(queryValue(route.query.page), 10)
+    await loadPosts(Number.isFinite(requestedPage) && requestedPage >= 0 ? requestedPage : 0, false)
   }
 
   return {
@@ -134,7 +156,7 @@ export const usePostSearch = () => {
     searched,
     message,
     filters,
-    loadCategories,
+    restore,
     search,
     reset,
     movePage,

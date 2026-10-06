@@ -126,9 +126,6 @@ public class PostService {
             String requestedStatus
     ) {
         String keyword = trimToNull(requestedKeyword);
-        if (keyword != null && keyword.length() < 2) {
-            throw new AuthException(HttpStatus.BAD_REQUEST, "검색어는 두 글자 이상 입력해 주세요.");
-        }
         String status = normalizeMyFeedStatus(requestedStatus);
         String sort = "oldest".equals(requestedSort) ? "oldest" : "latest";
         int page = Math.max(requestedPage == null ? 0 : requestedPage, 0);
@@ -348,4 +345,3 @@ public class PostService {
         return value == null ? "" : value.trim();
     }
 }
-

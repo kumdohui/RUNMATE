@@ -7,6 +7,7 @@ public record PopularCourseRow(
         String region,
         double distanceKm,
         int durationSeconds,
+        String storageKey,
         long likeCount,
         long commentCount
 ) {

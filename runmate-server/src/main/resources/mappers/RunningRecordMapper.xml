@@ -5,6 +5,26 @@
         SELECT running_record_id, post_id, running_date, distance_km, duration_seconds, location_name, region, intensity, weather, created_at, updated_at
         FROM running_records WHERE post_id=#{postId}
     </select>
+    <select id="findLatestByUserId" resultType="com.runmate.server.post.domain.RunningRecord">
+        SELECT
+            rr.running_record_id,
+            rr.post_id,
+            rr.running_date,
+            rr.distance_km,
+            rr.duration_seconds,
+            rr.location_name,
+            rr.region,
+            rr.intensity,
+            rr.weather,
+            rr.created_at,
+            rr.updated_at
+        FROM running_records rr
+        INNER JOIN posts p ON p.post_id = rr.post_id
+        WHERE p.author_id = #{userId}
+          AND p.status = 'PUBLISHED'
+        ORDER BY rr.running_date DESC, rr.running_record_id DESC
+        LIMIT 1
+    </select>
     <insert id="insert" useGeneratedKeys="true" keyProperty="runningRecordId">
         INSERT INTO running_records (post_id, running_date, distance_km, duration_seconds, location_name, region, intensity, weather, created_at, updated_at)
         VALUES (#{postId}, #{runningDate}, #{distanceKm}, #{durationSeconds}, #{locationName}, #{region}, #{intensity}, #{weather}, NOW(), NOW())

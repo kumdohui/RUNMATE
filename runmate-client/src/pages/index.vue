@@ -10,11 +10,6 @@ const heroAction = computed(() =>
     ? { to: '/posts/new', label: '러닝 기록 작성하기' }
     : { to: '/signup', label: 'RUNMATE 시작하기' },
 )
-const communityAction = computed(() =>
-  authState.user
-    ? { to: '/posts/new', label: '게시글 작성하기' }
-    : { to: '/signup', label: '커뮤니티 시작하기' },
-)
 const handleLogout = async () => {
   try {
     await logout()
@@ -53,6 +48,7 @@ const loadHomeSummary = async (page = 0) => {
         ? `${Number(course.distanceKm).toFixed(1)} km`
         : '-',
       timeLabel: formatDuration(course.durationSeconds),
+      paceLabel: formatPace(course.distanceKm, course.durationSeconds),
     }))
     recentPosts.value = (data.recentPosts ?? []).map((post) => ({
       ...post,
@@ -250,6 +246,11 @@ onMounted(loadHomeSummary)
               class="course-cover"
               :class="`course-cover--${course.tone}`"
             >
+              <img
+                v-if="course.imageUrl"
+                :src="course.imageUrl"
+                :alt="`${course.title} 대표 이미지`"
+              />
               <span class="course-rank">{{ course.rank }}</span
               ><span class="course-line"></span><i class="course-dot"></i
               ><span class="course-save"
@@ -264,6 +265,8 @@ onMounted(loadHomeSummary)
                   ><b>{{ course.distanceLabel }}</b> 거리</span
                 ><span
                   ><b>{{ course.timeLabel || '-' }}</b> 소요 시간</span
+                ><span
+                  ><b>{{ course.paceLabel || '-' }}</b> 평균 페이스</span
                 ><RouterLink
                   :to="`/posts/${course.postId}`"
                   :aria-label="`${course.title} 열기`"
@@ -329,7 +332,12 @@ onMounted(loadHomeSummary)
               <div class="feed-body">
                 <h3>{{ post.title }}</h3>
                 <p>{{ post.summary }}</p>
-                <div class="feed-metrics">
+                <div
+                  class="feed-metrics"
+                  :class="{
+                    empty: !post.distanceLabel && !post.timeLabel && !post.paceLabel,
+                  }"
+                >
                   <b v-if="post.distanceLabel">{{ post.distanceLabel }}</b
                   ><b v-if="post.timeLabel">{{ post.timeLabel }}</b
                   ><b v-if="post.paceLabel">{{ post.paceLabel }}</b>
@@ -341,7 +349,8 @@ onMounted(loadHomeSummary)
                 v-if="post.authorId"
                 class="detail-author"
                 :to="`/users/${post.authorId}`"
-              >{{ post.authorNickname }}</NuxtLink>
+                >{{ post.authorNickname }}</NuxtLink
+              >
               <template v-else>{{ post.authorNickname }}</template>
               · ♡ {{ post.likeCount }} · 댓글 {{ post.commentCount }}
             </small>
@@ -377,29 +386,7 @@ onMounted(loadHomeSummary)
           </button>
         </nav>
       </section>
-      <section class="community-banner">
-        <div>
-          <span>RUN TOGETHER</span>
-          <h2>달리는 즐거움은<br />나눌수록 커지니까.</h2>
-        </div>
-        <p>
-          기록을 공유하고 서로의 달리기를 응원하세요.<br />RUNMATE에서 당신의 러닝
-          메이트를 만나보세요.
-        </p>
-        <RouterLink :to="communityAction.to"> {{ communityAction.label }} → </RouterLink>
-      </section>
     </main>
-    <footer class="home-footer">
-      <div>
-        <RouterLink
-          class="home-brand home-brand--footer"
-          to="/"
-          ><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink
-        >
-        <p>달리는 순간을 기록하고, 서로의 길을 나누는 러닝 커뮤니티</p>
-      </div>
-      <span>© 2026 RUNMATE</span>
-    </footer>
   </div>
 </template>
 

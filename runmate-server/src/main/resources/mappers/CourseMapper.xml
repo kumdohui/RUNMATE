@@ -9,9 +9,9 @@
           AND u.status &lt;&gt; 'SUSPENDED'
         <if test="keyword != null">
             AND (
-                p.title LIKE CONCAT('%', #{keyword}, '%')
-                OR p.summary LIKE CONCAT('%', #{keyword}, '%')
-                OR p.content LIKE CONCAT('%', #{keyword}, '%')
+                LOCATE(BINARY #{keyword}, BINARY p.title) &gt; 0
+                OR LOCATE(BINARY #{keyword}, BINARY COALESCE(p.summary, '')) &gt; 0
+                OR LOCATE(BINARY #{keyword}, BINARY p.content) &gt; 0
             )
         </if>
         <if test="categoryId != null">
@@ -20,14 +20,16 @@
         <if test="region != null">
             AND rr.region = #{region}
         </if>
-        <if test="tag != null">
+        <if test="tags != null and !tags.isEmpty()">
+          <foreach collection="tags" item="tag">
             AND EXISTS (
                 SELECT 1
                   FROM post_tags pt
                   JOIN tags t ON t.tag_id = pt.tag_id
                  WHERE pt.post_id = p.post_id
-                   AND REPLACE(t.normalized_name, ' ', '') LIKE CONCAT('%', #{tag}, '%')
+                   AND BINARY REPLACE(t.normalized_name, ' ', '') = BINARY #{tag}
             )
+          </foreach>
         </if>
         <if test="minDistance != null">
             AND rr.distance_km &gt;= #{minDistance}
@@ -67,6 +69,17 @@
                  WHERE c.post_id = p.post_id
                    AND c.deleted_at IS NULL
                    AND c.status = 'PUBLISHED'
+                   AND (
+                       c.parent_comment_id IS NULL
+                       OR EXISTS (
+                           SELECT 1 FROM comments live_parent
+                           JOIN users live_parent_author ON live_parent_author.user_id = live_parent.author_id
+                            WHERE live_parent.comment_id = c.parent_comment_id
+                              AND live_parent.deleted_at IS NULL
+                              AND live_parent.status = 'PUBLISHED'
+                              AND live_parent_author.status &lt;&gt; 'SUSPENDED'
+                       )
+                   )
                    AND NOT EXISTS (
                        SELECT 1 FROM users hidden_author
                         WHERE hidden_author.user_id = c.author_id
