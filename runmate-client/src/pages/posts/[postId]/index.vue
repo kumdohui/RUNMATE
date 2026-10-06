@@ -39,17 +39,29 @@ const commentTree = computed(() =>
     })),
 )
 
-onMounted(async () => {
-  await loadSession()
-  const response = await fetch(`/api/posts/${route.params.postId}`, {
-    credentials: 'include',
-  })
-  const body = await response.json().catch(() => ({}))
-  if (!response.ok) return (error.value = body.message || '게시글을 불러오지 못했습니다.')
-  post.value = body
-  currentImageIndex.value = 0
-  await loadReaction()
-})
+const loadPost = async () => {
+  error.value = ''
+  post.value = null
+  try {
+    await loadSession()
+    if (!authState.user) {
+      await router.replace('/login')
+      return
+    }
+    const response = await fetch(`/api/posts/${route.params.postId}`, {
+      credentials: 'include',
+    })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(body.message || '게시글을 불러오지 못했습니다.')
+    post.value = body
+    currentImageIndex.value = 0
+    await loadReaction()
+  } catch (requestError) {
+    error.value = requestError.message || '게시글을 불러오지 못했습니다.'
+  }
+}
+
+onMounted(loadPost)
 
 const loadReaction = async () => {
   const postId = route.params.postId
@@ -323,36 +335,29 @@ const deletePost = async () => {
 
 <template>
   <div class="detail-page">
-    <header class="write-header">
-      <RouterLink
-        class="home-brand"
-        to="/"
-        ><span class="brand-mark">R</span><span>RUNMATE</span></RouterLink
-      >
-      <div class="write-header-actions">
-        <AdminLink />
-        <NotificationBell />
+    <main class="detail-main">
+      <div class="detail-backbar">
         <button
           type="button"
           @click="goToList"
         >
-          목록으로
+          ← 목록으로
         </button>
       </div>
-    </header>
-    <main class="detail-main">
-      <p
+      <AppStatePanel
         v-if="error"
-        class="write-message"
-      >
-        {{ error }}
-      </p>
-      <p
+        type="error"
+        title="게시글을 불러오지 못했습니다"
+        :description="error"
+        action-label="다시 시도"
+        @action="loadPost"
+      />
+      <AppStatePanel
         v-else-if="!post"
-        class="detail-loading"
-      >
-        게시글을 불러오는 중...
-      </p>
+        type="loading"
+        title="게시글을 불러오는 중"
+        description="잠시만 기다려 주세요."
+      />
       <article v-else>
         <header class="detail-heading">
           <span>{{ post.categoryName }}</span>

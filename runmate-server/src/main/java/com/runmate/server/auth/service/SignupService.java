@@ -121,6 +121,7 @@ public class SignupService {
         userTermAgreementMapper.saveAll(agreements);
 
         emailVerification.consume(now);
+        emailVerificationMapper.update(emailVerification);
         phoneVerification.consume(now);
         phoneVerificationMapper.update(phoneVerification);
 
@@ -231,7 +232,7 @@ public class SignupService {
                 emailVerification.getVerifiedAt()
         );
         user.changeNickname(requestedNickname);
-        return user;
+        return userMapper.save(user);
     }
 
     private User createNewUser(

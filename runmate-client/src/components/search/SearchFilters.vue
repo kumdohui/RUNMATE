@@ -85,7 +85,7 @@ const regions = [
         <span>태그</span>
         <input
           v-model="filters.tag"
-          placeholder="#한강"
+          placeholder="#한강, #야간러닝"
         />
       </label>
       <label>

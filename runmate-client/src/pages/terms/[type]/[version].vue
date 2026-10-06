@@ -5,13 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-const returnToSignup = () => {
-  if (window.opener) {
-    window.close()
-    return
-  }
-  router.back()
-}
+const goHome = () => router.push('/')
 
 const documents = {
   service: {
@@ -132,9 +126,9 @@ const document = computed(() => documents[route.params.type] || documents.servic
       <button
         type="button"
         class="terms-back"
-        @click="returnToSignup"
+        @click="goHome"
       >
-        회원가입 화면으로 돌아가기
+        홈으로
       </button>
     </main>
   </div>

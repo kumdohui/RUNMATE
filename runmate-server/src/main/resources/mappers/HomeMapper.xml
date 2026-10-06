@@ -20,12 +20,28 @@
                    COALESCE(rr.region, '') AS region,
                    COALESCE(rr.distance_km, 0) AS distance_km,
                    COALESCE(rr.duration_seconds, 0) AS duration_seconds,
+                   (SELECT pi.storage_key
+                      FROM post_images pi
+                     WHERE pi.post_id = p.post_id
+                     ORDER BY pi.display_order, pi.image_id
+                     LIMIT 1) AS storage_key,
                    (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
                    (SELECT COUNT(*)
                       FROM comments c
                      WHERE c.post_id = p.post_id
                        AND c.deleted_at IS NULL
                        AND c.status = 'PUBLISHED'
+                       AND (
+                           c.parent_comment_id IS NULL
+                           OR EXISTS (
+                               SELECT 1 FROM comments live_parent
+                               JOIN users live_parent_author ON live_parent_author.user_id = live_parent.author_id
+                                WHERE live_parent.comment_id = c.parent_comment_id
+                                  AND live_parent.deleted_at IS NULL
+                                  AND live_parent.status = 'PUBLISHED'
+                                  AND live_parent_author.status &lt;&gt; 'SUSPENDED'
+                           )
+                       )
                        AND NOT EXISTS (
                            SELECT 1 FROM users hidden_author
                             WHERE hidden_author.user_id = c.author_id
@@ -74,6 +90,17 @@
                  WHERE c.post_id = p.post_id
                    AND c.deleted_at IS NULL
                    AND c.status = 'PUBLISHED'
+                   AND (
+                       c.parent_comment_id IS NULL
+                       OR EXISTS (
+                           SELECT 1 FROM comments live_parent
+                           JOIN users live_parent_author ON live_parent_author.user_id = live_parent.author_id
+                            WHERE live_parent.comment_id = c.parent_comment_id
+                              AND live_parent.deleted_at IS NULL
+                              AND live_parent.status = 'PUBLISHED'
+                              AND live_parent_author.status &lt;&gt; 'SUSPENDED'
+                       )
+                   )
                    AND NOT EXISTS (
                        SELECT 1 FROM users hidden_author
                         WHERE hidden_author.user_id = c.author_id

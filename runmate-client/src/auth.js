@@ -3,9 +3,25 @@ import { createCsrfHeaders, readJson } from './api/http'
 
 export const authState = reactive({ user: null, checked: false })
 
+const AUTH_TIMEOUT_MS = 10000
+
+const authFetch = async (url, options = {}) => {
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
+    })
+  } catch (error) {
+    if (error.name === 'TimeoutError') {
+      throw new Error('서버 응답이 없습니다. 백엔드 실행 상태를 확인해 주세요.')
+    }
+    throw error
+  }
+}
+
 export const loadSession = async () => {
   try {
-    const response = await fetch('/api/auth/session', {
+    const response = await authFetch('/api/auth/session', {
       credentials: 'include',
     })
     authState.user = response.ok && response.status !== 204 ? await response.json() : null
@@ -17,7 +33,7 @@ export const loadSession = async () => {
 }
 
 export const login = async (loginId, password) => {
-  const response = await fetch('/api/auth/login', {
+  const response = await authFetch('/api/auth/login', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -32,7 +48,7 @@ export const login = async (loginId, password) => {
 }
 
 export const confirmAdminMfa = async (code) => {
-  const response = await fetch('/api/auth/login/admin-mfa', {
+  const response = await authFetch('/api/auth/login/admin-mfa', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -46,7 +62,7 @@ export const confirmAdminMfa = async (code) => {
 
 export const logout = async () => {
   const csrfHeaders = await createCsrfHeaders()
-  const response = await fetch('/api/auth/logout', {
+  const response = await authFetch('/api/auth/logout', {
     method: 'POST',
     credentials: 'include',
     headers: csrfHeaders,

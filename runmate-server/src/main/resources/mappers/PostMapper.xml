@@ -67,7 +67,18 @@
                rr.region,
                (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS like_count,
                (SELECT COUNT(*) FROM comments c
-                 WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS comment_count
+                 WHERE c.post_id = p.post_id
+                   AND c.deleted_at IS NULL
+                   AND c.status = 'PUBLISHED'
+                   AND (
+                       c.parent_comment_id IS NULL
+                       OR EXISTS (
+                           SELECT 1 FROM comments live_parent
+                            WHERE live_parent.comment_id = c.parent_comment_id
+                              AND live_parent.deleted_at IS NULL
+                              AND live_parent.status = 'PUBLISHED'
+                       )
+                   )) AS comment_count
           FROM posts p
           JOIN categories category ON category.category_id = p.category_id
           LEFT JOIN running_records rr ON rr.post_id = p.post_id
@@ -109,6 +120,17 @@
                  WHERE c.post_id = p.post_id
                    AND c.deleted_at IS NULL
                    AND c.status = 'PUBLISHED'
+                   AND (
+                       c.parent_comment_id IS NULL
+                       OR EXISTS (
+                           SELECT 1 FROM comments live_parent
+                           JOIN users live_parent_author ON live_parent_author.user_id = live_parent.author_id
+                            WHERE live_parent.comment_id = c.parent_comment_id
+                              AND live_parent.deleted_at IS NULL
+                              AND live_parent.status = 'PUBLISHED'
+                              AND live_parent_author.status &lt;&gt; 'SUSPENDED'
+                       )
+                   )
                    AND NOT EXISTS (
                        SELECT 1 FROM users hidden_author
                         WHERE hidden_author.user_id = c.author_id

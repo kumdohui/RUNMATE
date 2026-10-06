@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.runmate.server.chat.mapper.ChatConversationMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="conversationId">
+        INSERT INTO chat_conversations (
+            user_id,
+            title,
+            status,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{userId},
+            #{title},
+            'ACTIVE',
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <select id="findByUserId" resultType="com.runmate.server.chat.domain.ChatConversation">
+        SELECT
+            conversation_id,
+            user_id,
+            title,
+            status,
+            last_message_at,
+            created_at
+        FROM chat_conversations
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+        ORDER BY
+            COALESCE(last_message_at, created_at) DESC,
+            conversation_id DESC
+    </select>
+
+    <select id="findOwned" resultType="com.runmate.server.chat.domain.ChatConversation">
+        SELECT
+            conversation_id,
+            user_id,
+            title,
+            status,
+            last_message_at,
+            created_at
+        FROM chat_conversations
+        WHERE conversation_id = #{conversationId}
+          AND user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="findDeletedByUserId" resultType="com.runmate.server.chat.domain.ChatConversation">
+        SELECT
+            conversation_id,
+            user_id,
+            title,
+            status,
+            last_message_at,
+            created_at
+        FROM chat_conversations
+        WHERE user_id = #{userId}
+          AND status = 'DELETED'
+          AND deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC, conversation_id DESC
+    </select>
+
+    <select id="lockOwned" resultType="com.runmate.server.chat.domain.ChatConversation">
+        SELECT
+            conversation_id,
+            user_id,
+            title,
+            status,
+            last_message_at,
+            created_at
+        FROM chat_conversations
+        WHERE conversation_id = #{conversationId}
+          AND user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <update id="touch">
+        UPDATE chat_conversations
+        SET title = COALESCE(#{title}, title),
+            last_message_at = NOW(),
+            updated_at = NOW()
+        WHERE conversation_id = #{conversationId}
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="softDelete">
+        UPDATE chat_conversations
+        SET status = 'DELETED',
+            deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE conversation_id = #{conversationId}
+          AND user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="restore">
+        UPDATE chat_conversations
+        SET status = 'ACTIVE',
+            deleted_at = NULL,
+            updated_at = NOW()
+        WHERE conversation_id = #{conversationId}
+          AND user_id = #{userId}
+          AND status = 'DELETED'
+          AND deleted_at IS NOT NULL
+    </update>
+
+    <delete id="deletePermanently">
+        DELETE FROM chat_conversations
+        WHERE conversation_id = #{conversationId}
+          AND user_id = #{userId}
+          AND status = 'DELETED'
+          AND deleted_at IS NOT NULL
+    </delete>
+</mapper>

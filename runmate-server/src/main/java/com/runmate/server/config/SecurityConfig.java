@@ -59,11 +59,13 @@ public class SecurityConfig {
                                 "/api/categories",
                                 "/api/terms/current"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/posts/*").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/posts/*/reaction").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/{userId:\\d+}", "/api/users/{userId:\\d+}/posts").permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/users/{userId:\\d+}",
+                                "/api/users/{userId:\\d+}/posts"
+                        ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/chat/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())

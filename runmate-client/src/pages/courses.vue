@@ -15,13 +15,13 @@ const {
   searched,
   message,
   filters,
-  loadCategories,
+  restore,
   search,
   reset,
   movePage,
 } = usePostSearch()
 
-onMounted(loadCategories)
+onMounted(restore)
 </script>
 
 <template>
@@ -62,21 +62,21 @@ onMounted(loadCategories)
 
       <div
         v-if="message"
-        class="course-message course-message--error"
       >
-        <span aria-hidden="true">!</span>
-        <p>{{ message }}</p>
+        <AppStatePanel
+          type="error"
+          title="불러오지 못했습니다"
+          :description="message"
+          action-label="다시 시도"
+          @action="search"
+        />
       </div>
-      <div
+      <AppStatePanel
         v-else-if="loading"
-        class="course-message"
-      >
-        <span
-          class="course-loading"
-          aria-hidden="true"
-        ></span>
-        <p>게시글을 찾고 있어요.</p>
-      </div>
+        type="loading"
+        title="기록을 불러오는 중"
+        description="잠시만 기다려 주세요."
+      />
       <div
         v-else-if="!searched"
         class="course-message"
@@ -87,16 +87,12 @@ onMounted(loadCategories)
           <small>검색어, 카테고리, 지역, 거리, 태그 중 하나를 고른 뒤 검색해 주세요.</small>
         </p>
       </div>
-      <div
+      <AppStatePanel
         v-else-if="!posts.length"
-        class="course-message"
-      >
-        <span aria-hidden="true">⌕</span>
-        <p>
-          <strong>검색 결과가 없습니다.</strong>
-          <small>검색어를 확인하거나 필터를 초기화해 보세요.</small>
-        </p>
-      </div>
+        type="empty"
+        title="검색 결과가 없습니다"
+        description="검색어를 확인하거나 다른 조건으로 검색해 보세요."
+      />
       <div
         v-else
         class="course-results"
